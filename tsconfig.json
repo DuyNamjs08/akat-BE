@@ -8,6 +8,9 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["src"],
+  "include": [
+    "**/*.ts",
+    "index.ts" // Thêm file vào đây
+  ],
   "exclude": ["node_modules"]
 }

@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-import { Client } from "@elastic/elasticsearch";
-import { prepareForEs } from "../helpers";
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import { Client } from '@elastic/elasticsearch';
+import { prepareForEs } from '../helpers';
 dotenv.config();
 type MyDocument = {
   [key: string]: any;
@@ -9,36 +9,36 @@ type MyDocument = {
   __v: number;
 };
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || "",
+  node: process.env.ELASTICSEARCH_URL || '',
   headers: {
-    Accept: "application/json",
-    "Content-Type": "application/json",
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
   },
 });
-console.log("ES URL", process.env.ELASTICSEARCH_URL);
+console.log('ES URL', process.env.ELASTICSEARCH_URL);
 const connectDB = async () => {
   try {
     const uri = process.env.MONGODB_URL;
     if (!uri) {
-      throw new Error("❌ MONGODB_URL is not defined in environment variables");
+      throw new Error('❌ MONGODB_URL is not defined in environment variables');
     }
     await mongoose.connect(uri);
-    console.log("✅ MongoDB connected!");
+    console.log('✅ MongoDB connected!');
     initialSync();
     const db = mongoose.connection.db;
     if (!db) {
-      throw new Error("❌ MongoDB connection is not established");
+      throw new Error('❌ MongoDB connection is not established');
     }
-    const changeStream = db.watch([], { fullDocument: "updateLookup" });
-    changeStream.on("change", async (change: any) => {
+    const changeStream = db.watch([], { fullDocument: 'updateLookup' });
+    changeStream.on('change', async (change: any) => {
       const ns = change.ns; // namespace: { db: 'yourDB', coll: 'users' }
       const indexName = ns.coll.toLowerCase(); // dùng tên collection làm index
       const docId = change.documentKey._id.toString();
 
       switch (change.operationType) {
-        case "insert":
-        case "update":
-        case "replace":
+        case 'insert':
+        case 'update':
+        case 'replace':
           const doc = change.fullDocument;
           if (!doc) {
             console.warn(`⚠️ No fullDocument in change event for ${indexName}`);
@@ -53,7 +53,7 @@ const connectDB = async () => {
           console.log(`📤 Synced ${indexName}: ${docId}`);
           break;
 
-        case "delete":
+        case 'delete':
           await esClient.delete({
             index: indexName,
             id: docId,
@@ -63,7 +63,7 @@ const connectDB = async () => {
       }
     });
   } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
+    console.error('❌ MongoDB connection error:', error);
     process.exit(1);
   }
 };
@@ -71,7 +71,7 @@ async function initialSync() {
   try {
     const db = mongoose.connection.db;
     if (!db) {
-      throw new Error("❌ MongoDB connection is not established");
+      throw new Error('❌ MongoDB connection is not established');
     }
     const collections = await db.listCollections().toArray();
 
@@ -93,7 +93,7 @@ async function initialSync() {
       while (await cursor.hasNext()) {
         const doc = await cursor.next();
         if (!doc) {
-          console.warn("⚠️ Skipping null document during initial sync");
+          console.warn('⚠️ Skipping null document during initial sync');
           continue;
         }
         const docTyped = doc as unknown as MyDocument;
@@ -107,7 +107,7 @@ async function initialSync() {
       console.log(`🔄 Initial sync completed for ${indexName}`);
     }
   } catch (error) {
-    console.error("❌ Initial sync error:", error);
+    console.error('❌ Initial sync error:', error);
   }
 }
 

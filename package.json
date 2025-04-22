@@ -9,7 +9,11 @@
     "start": "node dist/index.js",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:generate": "npx prisma generate",
-    "prisma:studio": "npx prisma studio"
+    "prisma:studio": "npx prisma studio",
+    "lint": "eslint . --ext .js,.ts,.mjs,.cjs",
+    "lint:fix": "eslint . --ext .js,.ts,.mjs,.cjs --fix",
+    "prettier": "prettier --write .",
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +34,7 @@
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.25.1",
     "@types/amqplib": "^0.10.7",
     "@types/autocannon": "^7.12.6",
     "@types/compression": "^1.7.5",
@@ -37,10 +42,20 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.14.1",
     "@types/winston": "^2.4.4",
+    "@typescript-eslint/eslint-plugin": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.0",
+    "eslint": "^9.25.1",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.1",
     "nodemon": "^3.1.9",
+    "prettier": "^3.5.3",
     "prisma": "^6.6.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.31.0"
   }
 }

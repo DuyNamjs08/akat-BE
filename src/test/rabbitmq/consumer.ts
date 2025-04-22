@@ -1,10 +1,10 @@
-import amqplib from "amqplib";
+import amqplib from 'amqplib';
 
 export const runConsumer = async () => {
   try {
-    const connection = await amqplib.connect("amqp://admin:admin123@localhost");
+    const connection = await amqplib.connect('amqp://admin:admin123@localhost');
     const channel = await connection.createChannel();
-    const queueName = "test_topic";
+    const queueName = 'test_topic';
     await channel.assertQueue(queueName, {
       durable: true,
     });
@@ -18,12 +18,12 @@ export const runConsumer = async () => {
       },
       {
         noAck: true,
-      }
+      },
     );
   } catch (error) {
-    console.error("Error in producer:", error);
+    console.error('Error in producer:', error);
   }
 };
 runConsumer().catch((error) => {
-  console.error("Error in producer:", error);
+  console.error('Error in producer:', error);
 });

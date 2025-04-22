@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from "express";
-import logger from "./logger";
+import { Request, Response, NextFunction } from 'express';
+import logger from './logger';
 
 // Middleware log phản hồi
 export const logResponse = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const originalSend = res.send.bind(res);
 
@@ -13,7 +13,7 @@ export const logResponse = (
     // Ghi log mã trạng thái và thông tin phản hồi
     logger.info(`Response: ${res.statusCode} ${req.method} ${req.url}`);
     logger.debug(
-      `Response Body: ${typeof body === "string" ? body : JSON.stringify(body)}`
+      `Response Body: ${typeof body === 'string' ? body : JSON.stringify(body)}`,
     );
 
     // Gửi phản hồi như bình thường

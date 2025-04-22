@@ -1,23 +1,23 @@
-import cluster from "cluster";
-import os from "os";
+import cluster from 'cluster';
+import os from 'os';
 
-import compression from "compression";
-import redisClient from "./src/config/redis-config";
-import logger from "./src/config/logger";
-import multer from "multer";
+import compression from 'compression';
+import redisClient from './src/config/redis-config';
+import logger from './src/config/logger';
+import multer from 'multer';
 // import ProductServiceTest from "./src/test/product.test";
-import express from "express";
-import connectDB from "./src/config/mongoDb.config";
-import { Request, Response, NextFunction, Application } from "express";
+import express from 'express';
+import connectDB from './src/config/mongoDb.config';
+import { Request, Response, NextFunction, Application } from 'express';
 
 const numCPUs = os.cpus().length;
 
 const numsWorker = Math.min(4, numCPUs);
 if (cluster.isMaster) {
   console.log(`Master ${process.pid} is running`);
-  process.title = "Master Process";
+  process.title = 'Master Process';
 
-  let restartLimits: { [key: number]: number[] } = {}; // Theo dõi số lần restart trong khoảng thời gian
+  const restartLimits: { [key: number]: number[] } = {}; // Theo dõi số lần restart trong khoảng thời gian
   const RESTART_THRESHOLD = 5; // Giới hạn số lần restart
   const TIME_FRAME = 60 * 1000; // 60 giây
 
@@ -25,9 +25,9 @@ if (cluster.isMaster) {
     cluster.fork();
   }
 
-  cluster.on("exit", (worker, code, signal) => {
+  cluster.on('exit', (worker, code, signal) => {
     console.log(
-      `Worker ${worker.process.pid} died (code: ${code}, signal: ${signal})`
+      `Worker ${worker.process.pid} died (code: ${code}, signal: ${signal})`,
     );
 
     const workerId = worker.id;
@@ -37,14 +37,14 @@ if (cluster.isMaster) {
     // console.log("restartLimits>???", restartLimits);
     const now = Date.now();
     restartLimits[workerId] = restartLimits[workerId].filter(
-      (timestamp) => now - timestamp < TIME_FRAME
+      (timestamp) => now - timestamp < TIME_FRAME,
     );
     // console.log(restartLimits[workerId]);
     restartLimits[workerId].push(now);
 
     if (restartLimits[workerId].length > RESTART_THRESHOLD) {
       console.error(
-        `Worker ${worker.process.pid} restarted too many times, stopping auto-restart.`
+        `Worker ${worker.process.pid} restarted too many times, stopping auto-restart.`,
       );
       return;
     }
@@ -58,16 +58,16 @@ if (cluster.isMaster) {
   const app: Application = express();
   connectDB();
   app.use(express.json());
-  const upload = multer({ dest: "uploads/" });
+  const upload = multer({ dest: 'uploads/' });
 
   app.use(
     compression({
       threshold: 1024,
       filter: (req, res) => {
-        console.log("Compression check for:", req.url);
+        console.log('Compression check for:', req.url);
         return compression.filter(req, res);
       },
-    })
+    }),
   );
   // redisClient.on("ready", async () => {
   //   console.log("Redis is ready!");
@@ -92,7 +92,7 @@ if (cluster.isMaster) {
   // });
 
   // logger.error("An error occurred");
-  app.get("/", (req: Request, res: Response): void => {
+  app.get('/', (req: Request, res: Response): void => {
     console.log(`Worker ${process.pid} is processing request`);
     res.send(`Worker ${process.pid} is handling this request`);
   });

@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   elasticsearch:
@@ -29,7 +29,7 @@ services:
     image: redis
     container_name: akat-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
 
   postgres:
     image: postgres:17-alpine
@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: 123123
       POSTGRES_DB: postgres
     ports:
-      - "5431:5432"
+      - '5431:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
   rabbitmq:
@@ -51,8 +51,8 @@ services:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
     ports:
-      - "5672:5672" # AMQP port
-      - "15672:15672" # Management UI port
+      - '5672:5672' # AMQP port
+      - '15672:15672' # Management UI port
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
   jenkins:
@@ -60,8 +60,8 @@ services:
     container_name: akat-jenkins
     user: root
     ports:
-      - "8081:8080"
-      - "50001:50000"
+      - '8081:8080'
+      - '50001:50000'
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock # Cho phép Jenkins dùng Docker host
@@ -83,10 +83,10 @@ services:
       RABBITMQ_USER: admin
       RABBITMQ_PASSWORD: admin123
     ports:
-      - "4000:4000"
+      - '4000:4000'
     volumes:
       - .:/app
-    command: ["node", "index.js"]
+    command: ['node', 'index.js']
 
 volumes:
   esdata:
