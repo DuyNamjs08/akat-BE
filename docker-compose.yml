@@ -1,0 +1,99 @@
+version: "3.8"
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: akat-elasticsearch
+    environment:
+      - node.name=shopdev_es
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: akat-kibana
+    ports:
+      - 5602:5601
+    depends_on:
+      - elasticsearch
+  redis:
+    image: redis
+    container_name: akat-redis
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: akat-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123123
+      POSTGRES_DB: postgres
+    ports:
+      - "5431:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: akat-rabbitmq
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+  jenkins:
+    image: jenkins/jenkins:jdk17
+    container_name: akat-jenkins
+    user: root
+    ports:
+      - "8081:8080"
+      - "50001:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock # Cho phép Jenkins dùng Docker host
+      - ./jenkins:/app # Mount thư mục chứa Jenkinsfile nếu cần
+    depends_on:
+      - app # Tuỳ chọn, nếu Jenkins cần chờ app service lên
+  app:
+    build: .
+    container_name: akat-app
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      REDIS_HOST: akat-redis
+      REDIS_PORT: 6379
+      DATABASE_URL: postgresql://postgres:123123@akat-postgres:5432/postgres
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: admin
+      RABBITMQ_PASSWORD: admin123
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+    command: ["node", "index.js"]
+
+volumes:
+  esdata:
+    driver: local
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  jenkins_home:
+    driver: local
