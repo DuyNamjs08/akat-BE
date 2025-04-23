@@ -10,7 +10,7 @@
   },
   "include": [
     "**/*.ts",
-    "index.ts" // Thêm file vào đây
+    "src/index.ts" // Thêm file vào đây
   ],
   "exclude": ["node_modules"]
 }

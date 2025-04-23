@@ -9,7 +9,7 @@ services:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g # Quan trọng: Thêm dòng này
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=true
     ulimits:
       memlock:
@@ -19,7 +19,7 @@ services:
       - esdata:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
-    mem_limit: 2g
+    mem_limit: 1g
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:9200 || exit 1']
