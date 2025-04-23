@@ -7,7 +7,9 @@ import globals from 'globals';
 const tsRecommended = tsPlugin.configs.recommended;
 
 export default [
-  // Config TypeScript
+  {
+    ignores: ['node_modules/**', 'src/generated/**'],
+  },
   {
     files: ['**/*.ts'],
     languageOptions: {
@@ -34,6 +36,7 @@ export default [
 
   // Config Prettier (tắt các rule xung đột)
   {
+    files: ['**/*.d.ts'],
     rules: {
       'arrow-body-style': 'off',
       'prefer-arrow-callback': 'off',
