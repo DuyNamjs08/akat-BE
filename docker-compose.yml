@@ -9,6 +9,8 @@ services:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g # Quan trọng: Thêm dòng này
+      - xpack.security.enabled=true
     ulimits:
       memlock:
         soft: -1
@@ -18,7 +20,12 @@ services:
     ports:
       - 9200:9200
     mem_limit: 2g
-    restart: always
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200 || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   kibana:
     image: docker.elastic.co/kibana/kibana:7.10.0
