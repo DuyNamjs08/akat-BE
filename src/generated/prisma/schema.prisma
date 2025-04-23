@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id                          String    @id @default(uuid())
+  instance_id                 Int?
+  aud                         String?
+  email                       String    @unique
+  password                    String
+  email_confirmed_at          DateTime?
+  invited_at                  DateTime?
+  confirmation_token          String?
+  confirmation_sent_at        DateTime?
+  recovery_token              String?
+  recovery_sent_at            DateTime?
+  email_change_token_new      String?
+  email_change                String?
+  email_change_sent_at        DateTime?
+  last_sign_in_at             DateTime?
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean   @default(false)
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
+  phone                       String?
+  phone_confirmed_at          DateTime?
+  phone_change                String?
+  phone_change_token          String?
+  phone_change_sent_at        DateTime?
+  confirmed_at                DateTime?
+  email_change_token_current  String?
+  email_change_confirm_status Int?
+  banned_until                DateTime?
+  reauthentication_token      String?
+  reauthentication_sent_at    DateTime?
+  is_sso_user                 Boolean   @default(false)
+  deleted_at                  DateTime?
+  is_anonymous                Boolean   @default(false)
+
+  // Quan hệ với AdAccountRental (từ yêu cầu trước)
+  rentals              AdAccountRental[]
+  profile              Profile?
+  role_id              String
+  role                 Role                  @relation(fields: [role_id], references: [id])
+  facebook_connections FacebookConnections[]
+  token                Token[]
+
+  @@map("users")
+}
+
+model Token {
+  id           String   @id @default(uuid())
+  user_id      String
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_token   String[]
+  access_token String[] @default([])
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("tokens")
+}
+
+model FacebookFanPage {
+  id String @id @default(uuid())
+
+  page_name       String
+  page_category   String
+  page_url        String
+  page_avatar_url String
+  follower_count  Int
+  page_type       String
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Quan hệ 1-1 với FacebookConnections
+  connection_id          String                @unique
+  facebook_page_insights FacebookPageInsights?
+  facebookConnections    FacebookConnections?
+
+  @@map("facebook_fan_pages")
+}
+
+model FacebookConnections {
+  id String @id @default(uuid())
+
+  page_id      String    @default("")
+  access_token String[]
+  status       String    @default("")
+  permissions  String[]
+  last_sync    DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  // Quan hệ 1-1 với FacebookFanPage
+
+  user_id             String
+  user                User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  facebook_fanpage_id String          @unique
+  facebookFanpage     FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
+  role_id             String?
+
+  @@map("facebook_connections")
+}
+
+model FacebookPageInsights {
+  id           Int      @id @default(autoincrement())
+  posts        Int
+  approach     Int
+  interactions Int
+  follows      Int
+  created_at   DateTime @default(now())
+
+  name      String?
+  image_url String?
+  category  String?
+  status    String?
+  user_id   String?
+
+  facebook_fanpage_id String          @unique
+  facebookFanpage     FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
+
+  @@map("facebook_page_insights")
+}
+
+model Profile {
+  user_id   String   @id
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model AdAccountRental {
+  id      String @id @default(uuid())
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  start_date DateTime
+  end_date   DateTime
+  status     String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Quan hệ với SystemAdAccount
+  account_id Int
+  account    SystemAdAccount @relation(fields: [account_id], references: [id])
+
+  @@map("ad_account_rentals")
+}
+
+model SystemAdAccount {
+  id           Int      @id @default(autoincrement())
+  account_id   String   @unique
+  name         String
+  status       String
+  daily_budget Float
+  total_spent  Float
+  available    Boolean
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Quan hệ với AdAccountRental
+  rentals AdAccountRental[]
+
+  @@map("system_ad_accounts")
+}
