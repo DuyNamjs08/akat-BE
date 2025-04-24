@@ -68,37 +68,52 @@ stage('Deploy') {
         script {
             echo "Deploying on branch: ${env.BRANCH_NAME}"
 
+            // Kiểm tra thư mục dist/
             sh 'test -d dist/ || { echo "Thư mục dist/ không tồn tại!"; exit 1; }'
+
+            // Debug: Kiểm tra SSH key
             sh 'ssh-add -l || { echo "Không có SSH key nào được thêm"; }'
 
             sshagent(credentials: [SSH_CREDENTIALS_ID]) {
-                def pm2Path = "/root/.nvm/versions/node/v20.16.0/bin/pm2"
+                def nvmInit = 'export NVM_DIR="$HOME/.nvm" && source "$NVM_DIR/nvm.sh" && source "$NVM_DIR/bash_completion"'
 
-                // 1. Tạo thư mục và phân quyền
                 sh """
                     set -x
                     echo "🔄 Deploying to ${DEPLOY_DIR}..."
-                    ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'whoami'
-                    ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR}/dist && chown -R ${VPS_USER} ${DEPLOY_DIR}'
-                """
+                    echo "Thông tin môi trường:"
+                    echo "VPS_USER: ${VPS_USER}"
+                    echo "VPS_IP: ${VPS_IP}"
+                    echo "DEPLOY_DIR: ${DEPLOY_DIR}"
 
-                // 2. SCP source + ecosystem
-                sh """
-                    echo "📦 Nội dung dist/"
+                    # Kiểm tra SSH
+                    ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'whoami' || { echo "Lỗi khi kết nối SSH"; exit 1; }
+
+                    # Tạo thư mục và gán quyền
+                    ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR}/dist && chown -R ${VPS_USER} ${DEPLOY_DIR}' || { echo "Lỗi khi tạo thư mục trên VPS"; exit 1; }
+
+                    # Kiểm tra thư mục dist/
+                    echo "📦 Nội dung thư mục dist/:"
                     ls -la dist/
-                    scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/
-                    scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/
-                """
 
-                // 3. Restart PM2
-                sh "ssh ${VPS_USER}@${VPS_IP} '${pm2Path} list' || { echo 'PM2 không tìm thấy'; exit 1; }"
-                sh "ssh ${VPS_USER}@${VPS_IP} '${pm2Path} restart ${DEPLOY_DIR}/ecosystem.config.js'"
-                sh "ssh ${VPS_USER}@${VPS_IP} '${pm2Path} save'"
-                sh "ssh ${VPS_USER}@${VPS_IP} '${pm2Path} logs --lines 50'"
+                    # Copy thư mục dist và file ecosystem.config.js
+                    scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/ || { echo "Lỗi khi scp dist/"; exit 1; }
+                    scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/ || { echo "Lỗi khi scp ecosystem.config.js"; exit 1; }
+
+                    # Chạy PM2 thông qua NVM
+                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 list' || { echo "PM2 không tìm thấy"; exit 1; }
+
+                    echo "🚀 Restart ứng dụng..."
+                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 restart ${DEPLOY_DIR}/ecosystem.config.js' || { echo "Lỗi restart PM2"; exit 1; }
+                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 save' || { echo "Lỗi save PM2"; exit 1; }
+
+                    echo "📋 Logs ứng dụng:"
+                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 logs --lines 50' || { echo "Lỗi logs PM2"; exit 1; }
+                """
             }
         }
     }
 }
+
 
     }
 
