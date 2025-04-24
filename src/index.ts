@@ -12,8 +12,12 @@ import { Request, Response, NextFunction, Application } from 'express';
 import FacebookRoutes from './routes/facebook.routes';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger/swaggerConfig';
-import dotenv from 'dotenv';
-dotenv.config();
+import * as dotenv from 'dotenv';
+import * as fs from 'fs';
+dotenv.config({ path: `${__dirname}/../.env` });
+const envPath = `${__dirname}/../.env`;
+
+console.log('📄 .env content:\n', fs.readFileSync(envPath, 'utf-8'));
 
 const numCPUs = os.cpus().length;
 const numsWorker = Math.min(4, numCPUs);
