@@ -11,9 +11,20 @@ pipeline {
 
     stages {
         // Stage 1: Checkout & Cài đặt thư viện
-        stage('Checkout & Install') {
+        stage('Checkout & Pull Code') {
             steps {
-                checkout scm
+                script {
+                    // Pull code mới nhất từ Git repository nếu đã có thư mục
+                    if (fileExists(DEPLOY_DIR)) {
+                        dir(DEPLOY_DIR) {
+                            sh 'git pull origin master'
+                        }
+                    } else {
+                        // Nếu chưa có thư mục, checkout từ git
+                        checkout scm
+                    }
+                }
+                // Cài đặt thư viện sau khi pull code
                 sh 'npm ci'
             }
         }
