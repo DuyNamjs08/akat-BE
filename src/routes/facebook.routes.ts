@@ -36,6 +36,22 @@ import { verifyToken } from '../middlewares/auth.middleware';
  *                         type: string
  */
 router.get('/facebook', getAllFacebookPosts);
+router.get('/facebook1', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Hello from Facebook',
+    data: [
+      {
+        id: '1',
+        message: 'Hello from Facebook 1',
+      },
+      {
+        id: '2',
+        message: 'Hello from Facebook 2',
+      },
+    ],
+  });
+});
 
 /**
  * @swagger
