@@ -61,59 +61,47 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                expression { env.BRANCH_NAME == 'master' }
-            }
-            steps {
-                script {
-                    echo "Deploying on branch: ${env.BRANCH_NAME}"
+    when {
+        expression { env.BRANCH_NAME == 'master' }
+    }
+    steps {
+        script {
+            echo "Deploying on branch: ${env.BRANCH_NAME}"
 
-                    // Kiểm tra thư mục dist/
-                    sh 'test -d dist/ || { echo "Thư mục dist/ không tồn tại!"; exit 1; }'
+            // Kiểm tra thư mục dist/
+            sh 'test -d dist/ || { echo "Thư mục dist/ không tồn tại!"; exit 1; }'
 
-                    // Debug: Kiểm tra SSH key
-                    sh 'ssh-add -l || { echo "Không có SSH key nào được thêm"; }'
+            // Kiểm tra SSH key
+            sh 'ssh-add -l || echo "Không có SSH key nào được thêm"'
 
-                    sshagent(credentials: [SSH_CREDENTIALS_ID]) {
-                        sh """
-                            set -x  # Bật chế độ debug
-                            echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
-                            echo "Thông tin môi trường:"
-                            echo "VPS_USER: ${VPS_USER}"
-                            echo "VPS_IP: ${VPS_IP}"
-                            echo "DEPLOY_DIR: ${DEPLOY_DIR}"
+            sshagent(credentials: [SSH_CREDENTIALS_ID]) {
+                def pm2Path = "/root/.nvm/versions/node/v20.16.0/bin/pm2"
+                
+                sh """
+                    set -x
+                    echo "🔄 Deploying to \${DEPLOY_DIR}..."
+                    
+                    ssh -o StrictHostKeyChecking=no \${VPS_USER}@\${VPS_IP} 'whoami'
 
-                            # Debug: Kiểm tra SSH connection
-                            ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'whoami' || { echo "Lỗi khi kết nối SSH"; exit 1; }
+                    ssh -o StrictHostKeyChecking=no \${VPS_USER}@\${VPS_IP} 'mkdir -p \${DEPLOY_DIR}/dist && chown -R \$(whoami) \${DEPLOY_DIR}'
 
-                            # 1. Đảm bảo thư mục tồn tại và đúng quyền
-                            ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR}/dist && chown -R \$(whoami) ${DEPLOY_DIR}' || { echo "Lỗi khi tạo thư mục trên VPS"; exit 1; }
+                    echo "📦 File build:"
+                    ls -la dist/
 
-                            # 2. Kiểm tra file build
-                            echo "📦 Nội dung thư mục dist/:"
-                            ls -la dist/
+                    scp -r dist/ \${VPS_USER}@\${VPS_IP}:\${DEPLOY_DIR}/dist/
+                    scp ecosystem.config.js \${VPS_USER}@\${VPS_IP}:\${DEPLOY_DIR}/
+                """
 
-                            # 3. Sao chép thư mục dist/ bằng scp (thay rsync)
-                            scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/ || { echo "Lỗi khi scp thư mục dist/"; exit 1; }
-
-                            # 4. Sao chép file ecosystem.config.js
-                            scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/ || { echo "Lỗi khi scp ecosystem.config.js"; exit 1; }
-
-                            # 5. Kiểm tra và restart PM2
-                            echo "🔄 Danh sách ứng dụng PM2:"
-                            ssh ${VPS_USER}@${VPS_IP} 'pm2 list' || { echo "Lỗi khi liệt kê PM2"; exit 1; }
-
-                            echo "🚀 Khởi động lại ứng dụng..."
-                            ssh ${VPS_USER}@${VPS_IP} 'pm2 restart ${DEPLOY_DIR}/ecosystem.config.js' || { echo "Lỗi khi restart PM2"; exit 1; }
-                            ssh ${VPS_USER}@${VPS_IP} 'pm2 save' || { echo "Lỗi khi lưu PM2"; exit 1; }
-
-                            echo "📋 Logs ứng dụng:"
-                            ssh ${VPS_USER}@${VPS_IP} 'pm2 logs' || { echo "Lỗi khi xem logs PM2"; exit 1; }
-                        """
-                    }
-                }
+                // Dùng từng lệnh riêng với pm2Path
+                sh "ssh \${VPS_USER}@\${VPS_IP} '${pm2Path} list'"
+                sh "ssh \${VPS_USER}@\${VPS_IP} '${pm2Path} restart \${DEPLOY_DIR}/ecosystem.config.js'"
+                sh "ssh \${VPS_USER}@\${VPS_IP} '${pm2Path} save'"
+                sh "ssh \${VPS_USER}@\${VPS_IP} '${pm2Path} logs --lines 50'"
             }
         }
+    }
+}
+
     }
 
     post {
