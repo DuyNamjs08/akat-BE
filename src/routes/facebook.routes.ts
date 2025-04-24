@@ -49,6 +49,10 @@ router.get('/facebook1', (req, res) => {
         id: '2',
         message: 'Hello from Facebook 2',
       },
+      {
+        id: '3',
+        message: 'Hello from Facebook 2',
+      },
     ],
   });
 });
