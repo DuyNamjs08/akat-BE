@@ -9,6 +9,9 @@ import multer from 'multer';
 import express from 'express';
 import connectDB from './config/mongoDb.config';
 import { Request, Response, NextFunction, Application } from 'express';
+import FacebookRoutes from './routes/facebook.routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger/swaggerConfig';
 
 const numCPUs = os.cpus().length;
 
@@ -92,10 +95,13 @@ app.use(
 // });
 
 // logger.error("An error occurred");
+
+app.use('/api/v1/', FacebookRoutes);
 app.get('/', (req: Request, res: Response): void => {
   console.log(`Worker ${process.pid} is processing request`);
   res.send(`Worker ${process.pid} is handling this request`);
 });
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(4000, () => console.log(`Worker ${process.pid} started`));
 // }

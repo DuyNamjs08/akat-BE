@@ -31,6 +31,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       'prettier/prettier': 'error',
       'no-console': 'warn',
+      'consistent-return': 'off',
     },
   },
 
