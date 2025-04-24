@@ -104,6 +104,7 @@ stage('Deploy') {
                     # Copy thư mục dist và file ecosystem.config.js
                     scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/ || { echo "Lỗi khi scp dist/"; exit 1; }
                     scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/ || { echo "Lỗi khi scp ecosystem.config.js"; exit 1; }
+                    ssh ${VPS_USER}@${VPS_IP} "DEPLOY_DIR=${DEPLOY_DIR} bash -c 'cp \$DEPLOY_DIR/.env \$DEPLOY_DIR/dist/.env'"
 
                     # Chạy PM2 thông qua NVM
                     ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 list' || { echo "PM2 không tìm thấy"; exit 1; }
