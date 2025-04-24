@@ -97,9 +97,9 @@ stage('Deploy') {
 
                     ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && git pull origin ${env.BRANCH_NAME}' || { echo "Lỗi pull trên VPS"; exit 1; }
 
-                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm install' || { echo "Lỗi khi cài đặt dependencies trên VPS"; exit 1; }
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npm install' || { echo "Lỗi khi cài đặt dependencies trên VPS"; exit 1; }
 
-                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm run build' || { echo "Lỗi khi build trên VPS"; exit 1; }
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npm run build' || { echo "Lỗi khi build trên VPS"; exit 1; }
 
                     # Copy thư mục dist và file ecosystem.config.js
                     scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/ || { echo "Lỗi khi scp dist/"; exit 1; }
@@ -119,9 +119,6 @@ stage('Deploy') {
         }
     }
 }
-
-
-
     }
 
     post {
