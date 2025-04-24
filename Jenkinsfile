@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DEPLOY_DIR = '/root/app/akat-BE'
+        DEPLOY_DIR = '/var/www/akat-BE'
     }
 
     stages {
