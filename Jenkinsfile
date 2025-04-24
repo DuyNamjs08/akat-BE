@@ -114,7 +114,7 @@ stage('Deploy') {
                     ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 save' || { echo "Lỗi save PM2"; exit 1; }
 
                     echo "📋 Logs ứng dụng:"
-                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 logs --lines 50' || { echo "Lỗi logs PM2"; exit 1; }
+                    ssh ${VPS_USER}@${VPS_IP} '${nvmInit} && pm2 logs --lines 50 --nostream' || { echo "Lỗi logs PM2"; exit 1; }
                 """
             }
         }
