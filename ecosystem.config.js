@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'my-akat',
-      script: './dist/index.js',
+      script: '/var/www/akat-BE/dist/index.js',
+      interpreter: '/root/.nvm/versions/node/v20.16.0/bin/node', // Đảm bảo sử dụng đúng Node.js từ NVM
       instances: 1,
       autorestart: true,
       watch: false,
