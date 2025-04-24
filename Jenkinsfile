@@ -70,6 +70,14 @@ pipeline {
                 }
             }
         }
+        stage('Set Branch Name') {
+            steps {
+                script {
+                    env.BRANCH_NAME = env.BRANCH_NAME ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "Branch hiện tại là: ${env.BRANCH_NAME}"
+                }
+            }
+        }
         // Stage 4: Deploy nội bộ (trên VPS)
         stage('Deploy') {
             steps {
