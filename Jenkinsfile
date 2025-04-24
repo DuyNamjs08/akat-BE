@@ -10,7 +10,17 @@ pipeline {
     }
 
     stages {
-        // Stage 1: Checkout & Cài đặt thư viện
+        stage('Kiểm tra trước deploy') {
+    steps {
+        sh """
+            echo "📌 Thư mục hiện tại: \$(pwd)"
+            echo "📌 Nội dung thư mục ${DEPLOY_DIR}:"
+            ls -la ${DEPLOY_DIR}/
+            echo "📌 Danh sách PM2:"
+            pm2 list
+        """
+    }
+}
         stage('Checkout & Pull Code') {
             steps {
                 script {
@@ -46,25 +56,36 @@ pipeline {
 
         // Stage 4: Deploy nội bộ (trên VPS)
         stage('Deploy') {
-            when { branch 'master' }
-            steps {
-                sh """
-                    set -e
-                    echo "📦 Deploying to ${DEPLOY_DIR} ..."
-
-                    # 1. Tạo thư mục nếu chưa có
-                    mkdir -p ${DEPLOY_DIR}
-
-                    # 2. Đồng bộ build output và ecosystem config
-                    rsync -avz --delete dist/ ${DEPLOY_DIR}/dist/
-                    cp ecosystem.config.js ${DEPLOY_DIR}/
-
-                    # 3. Restart ứng dụng bằng PM2
-                    pm2 restart ${DEPLOY_DIR}/ecosystem.config.js 
-
-                    echo "✅ Deployed successfully!"
-                """
-            }
-        }
+    when { branch 'master' }
+    steps {
+        sh """
+            set -x  # Bật chế độ debug
+            echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
+            
+            # 1. Đảm bảo thư mục tồn tại và đúng quyền
+            mkdir -p ${DEPLOY_DIR}
+            chown -R \$(whoami) ${DEPLOY_DIR}
+            
+            # 2. Kiểm tra file build
+            echo "📦 Nội dung thư mục dist/:"
+            ls -la dist/
+            
+            # 3. Đồng bộ file với output chi tiết
+            rsync -avz --delete --progress dist/ ${DEPLOY_DIR}/dist/
+            cp -v ecosystem.config.js ${DEPLOY_DIR}/
+            
+            # 4. Kiểm tra và restart PM2
+            echo "🔄 Danh sách ứng dụng PM2:"
+            pm2 list
+            
+            echo "🚀 Khởi động lại ứng dụng..."
+            pm2 restart ${DEPLOY_DIR}/ecosystem.config.js --update-env
+            pm2 save
+            
+            echo "📋 Logs ứng dụng:"
+            pm2 logs
+        """
+    }
+}
     }
 }
