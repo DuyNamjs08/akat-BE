@@ -95,6 +95,10 @@ stage('Deploy') {
                     echo "📦 Nội dung thư mục dist/:"
                     ls -la dist/
 
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm install' || { echo "Lỗi khi cài đặt dependencies trên VPS"; exit 1; }
+
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm run build' || { echo "Lỗi khi build trên VPS"; exit 1; }
+
                     # Copy thư mục dist và file ecosystem.config.js
                     scp -r dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/ || { echo "Lỗi khi scp dist/"; exit 1; }
                     scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/ || { echo "Lỗi khi scp ecosystem.config.js"; exit 1; }
