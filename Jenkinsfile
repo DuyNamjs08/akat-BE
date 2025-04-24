@@ -95,6 +95,8 @@ stage('Deploy') {
                     echo "📦 Nội dung thư mục dist/:"
                     ls -la dist/
 
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && git pull origin ${env.BRANCH_NAME}' || { echo "Lỗi pull trên VPS"; exit 1; }
+
                     ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm install' || { echo "Lỗi khi cài đặt dependencies trên VPS"; exit 1; }
 
                     ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && npm run build' || { echo "Lỗi khi build trên VPS"; exit 1; }
