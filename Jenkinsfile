@@ -55,45 +55,66 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
             }
         }
-
+        stage('Kiểm tra branch') {
+            steps {
+                script {
+                    // In giá trị của BRANCH_NAME để kiểm tra
+                    echo "Giá trị của BRANCH_NAME là: ${env.BRANCH_NAME}"
+                    
+                    // Kiểm tra điều kiện nếu BRANCH_NAME có giá trị
+                    if (env.BRANCH_NAME) {
+                        echo "Branch đang sử dụng là: ${env.BRANCH_NAME}"
+                    } else {
+                        echo "Biến BRANCH_NAME không có giá trị hoặc không tồn tại!"
+                    }
+                }
+            }
+        }
         // Stage 4: Deploy nội bộ (trên VPS)
         stage('Deploy') {
-    when { branch 'master' }
-    steps {
-        sshagent (credentials: [SSH_CREDENTIALS_ID]) { // Sử dụng SSH key từ Jenkins Credentials
-            sh """
-                set -x  # Bật chế độ debug
-                echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
-                echo "Thông tin môi trường:"
-                echo "VPS_USER: ${VPS_USER}"
-                echo "VPS_IP: ${VPS_IP}"
-                echo "DEPLOY_DIR: ${DEPLOY_DIR}"
+            steps {
+                script {
+                    echo "Branch hiện tại là: ${env.BRANCH_NAME}"
+                    
+                    // Điều kiện kiểm tra branch có phải là master không
+                    if (env.BRANCH_NAME == 'master') {
+                        sshagent(credentials: [SSH_CREDENTIALS_ID]) { // Sử dụng SSH key từ Jenkins Credentials
+                            sh """
+                                set -x  # Bật chế độ debug
+                                echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
+                                echo "Thông tin môi trường:"
+                                echo "VPS_USER: ${VPS_USER}"
+                                echo "VPS_IP: ${VPS_IP}"
+                                echo "DEPLOY_DIR: ${DEPLOY_DIR}"
 
-                # 1. Đảm bảo thư mục tồn tại và đúng quyền
-                ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR} && chown -R \$(whoami) ${DEPLOY_DIR}'
+                                # 1. Đảm bảo thư mục tồn tại và đúng quyền
+                                ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR} && chown -R \$(whoami) ${DEPLOY_DIR}'
 
-                # 2. Kiểm tra file build
-                echo "📦 Nội dung thư mục dist/:"
-                ls -la dist/
+                                # 2. Kiểm tra file build
+                                echo "📦 Nội dung thư mục dist/:"
+                                ls -la dist/
 
-                # 3. Đồng bộ file với output chi tiết
-                rsync -avz --delete --progress dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/
-                scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/
+                                # 3. Đồng bộ file với output chi tiết
+                                rsync -avz --delete --progress dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/
+                                scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/
 
-                # 4. Kiểm tra và restart PM2
-                echo "🔄 Danh sách ứng dụng PM2:"
-                ssh ${VPS_USER}@${VPS_IP} 'pm2 list'
+                                # 4. Kiểm tra và restart PM2
+                                echo "🔄 Danh sách ứng dụng PM2:"
+                                ssh ${VPS_USER}@${VPS_IP} 'pm2 list'
 
-                echo "🚀 Khởi động lại ứng dụng..."
-                ssh ${VPS_USER}@${VPS_IP} 'pm2 restart ${DEPLOY_DIR}/ecosystem.config.js'
-                ssh ${VPS_USER}@${VPS_IP} 'pm2 save'
+                                echo "🚀 Khởi động lại ứng dụng..."
+                                ssh ${VPS_USER}@${VPS_IP} 'pm2 restart ${DEPLOY_DIR}/ecosystem.config.js'
+                                ssh ${VPS_USER}@${VPS_IP} 'pm2 save'
 
-                echo "📋 Logs ứng dụng:"
-                ssh ${VPS_USER}@${VPS_IP} 'pm2 logs'
-            """
+                                echo "📋 Logs ứng dụng:"
+                                ssh ${VPS_USER}@${VPS_IP} 'pm2 logs'
+                            """
+                        }
+                    } else {
+                        echo "📌 Bỏ qua deploy vì không phải branch master"
+                    }
+                }
+            }
         }
-    }
-}
-
     }
 }
