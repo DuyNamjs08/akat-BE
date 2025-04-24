@@ -6,21 +6,23 @@ pipeline {
     }
 
     environment {
-        DEPLOY_DIR = '/var/www/akat-BE'
+        DEPLOY_DIR = '/var/www/akat-BE' // Thư mục deploy trên VPS, thay đổi nếu cần
+        SSH_CREDENTIALS_ID = 'vps-ssh-key' // ID của SSH credentials trên Jenkins
+        VPS_USER = 'root' // Người dùng trên VPS, thay đổi nếu cần
+        VPS_IP = '103.82.24.164' // Địa chỉ IP của VPS, thay đổi nếu cần
     }
 
     stages {
         stage('Kiểm tra trước deploy') {
-    steps {
-        sh """
-            echo "📌 Thư mục hiện tại: \$(pwd)"
-            echo "📌 Nội dung thư mục ${DEPLOY_DIR}:"
-            ls -la ${DEPLOY_DIR}/
-            echo "📌 Danh sách PM2:"
-            pm2 list
-        """
-    }
-}
+            steps {
+                sh """
+                    echo "📌 Thư mục hiện tại: \$(pwd)"
+                    echo "📌 Nội dung thư mục ${DEPLOY_DIR}:"
+                    ls -la ${DEPLOY_DIR}/
+                """
+            }
+        }
+
         stage('Checkout & Pull Code') {
             steps {
                 script {
@@ -56,36 +58,37 @@ pipeline {
 
         // Stage 4: Deploy nội bộ (trên VPS)
         stage('Deploy') {
-    when { branch 'master' }
-    steps {
-        sh """
-            set -x  # Bật chế độ debug
-            echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
-            
-            # 1. Đảm bảo thư mục tồn tại và đúng quyền
-            mkdir -p ${DEPLOY_DIR}
-            chown -R \$(whoami) ${DEPLOY_DIR}
-            
-            # 2. Kiểm tra file build
-            echo "📦 Nội dung thư mục dist/:"
-            ls -la dist/
-            
-            # 3. Đồng bộ file với output chi tiết
-            rsync -avz --delete --progress dist/ ${DEPLOY_DIR}/dist/
-            cp -v ecosystem.config.js ${DEPLOY_DIR}/
-            
-            # 4. Kiểm tra và restart PM2
-            echo "🔄 Danh sách ứng dụng PM2:"
-            pm2 list
-            
-            echo "🚀 Khởi động lại ứng dụng..."
-            pm2 restart ${DEPLOY_DIR}/ecosystem.config.js --update-env
-            pm2 save
-            
-            echo "📋 Logs ứng dụng:"
-            pm2 logs
-        """
-    }
-}
+            when { branch 'master' }
+            steps {
+                sshagent (credentials: [SSH_CREDENTIALS_ID]) { // Sử dụng SSH key từ Jenkins Credentials
+                    sh """
+                        set -x  # Bật chế độ debug
+                        echo "🔄 Đang deploy lên ${DEPLOY_DIR}..."
+
+                        # 1. Đảm bảo thư mục tồn tại và đúng quyền
+                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} 'mkdir -p ${DEPLOY_DIR} && chown -R \$(whoami) ${DEPLOY_DIR}'
+
+                        # 2. Kiểm tra file build
+                        echo "📦 Nội dung thư mục dist/:"
+                        ls -la dist/
+
+                        # 3. Đồng bộ file với output chi tiết
+                        rsync -avz --delete --progress dist/ ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/dist/
+                        scp ecosystem.config.js ${VPS_USER}@${VPS_IP}:${DEPLOY_DIR}/
+
+                        # 4. Kiểm tra và restart PM2
+                        echo "🔄 Danh sách ứng dụng PM2:"
+                        ssh ${VPS_USER}@${VPS_IP} 'pm2 list'
+
+                        echo "🚀 Khởi động lại ứng dụng..."
+                        ssh ${VPS_USER}@${VPS_IP} 'pm2 restart ${DEPLOY_DIR}/ecosystem.config.js'
+                        ssh ${VPS_USER}@${VPS_IP} 'pm2 save'
+
+                        echo "📋 Logs ứng dụng:"
+                        ssh ${VPS_USER}@${VPS_IP} 'pm2 logs'
+                    """
+                }
+            }
+        }
     }
 }
