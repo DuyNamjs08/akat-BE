@@ -9,7 +9,7 @@ type MyDocument = {
   __v: number;
 };
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || '',
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
