@@ -29,7 +29,9 @@ export default [
       ...tsRecommended.rules,
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'off',
-      'prettier/prettier': 'error',
+      'prettier/prettier': ['error', {
+        endOfLine: 'lf'
+      }],
       'no-console': 'warn',
       'consistent-return': 'off',
     },
