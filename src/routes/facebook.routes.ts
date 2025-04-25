@@ -4,7 +4,6 @@ const router = express.Router();
 import {
   getAllFacebookPosts,
   createFacebookPost,
-  loginFacebook,
 } from '../controllers/facebook.controller';
 import { verifyToken } from '../middlewares/auth.middleware';
 
@@ -81,7 +80,4 @@ router.get('/facebook1', (req, res) => {
  *         description: Tạo thành công
  */
 router.post('/facebook', createFacebookPost);
-
-router.get('/login-fb', loginFacebook);
-
 export default router;

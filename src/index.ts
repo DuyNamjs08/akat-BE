@@ -15,7 +15,7 @@ import { swaggerSpec } from './swagger/swaggerConfig';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import cors from 'cors';
-
+import authRoutes from './routes/auth.routes';
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
 
@@ -66,6 +66,7 @@ const numsWorker = Math.min(4, numCPUs);
 const app: Application = express();
 connectDB();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 const upload = multer({ dest: 'uploads/' });
 
@@ -101,6 +102,8 @@ app.use(
 // });
 
 // logger.error("An error occurred");
+
+app.use('/oauth', authRoutes);
 
 app.use('/api/v1/', FacebookRoutes);
 app.get('/', (req: Request, res: Response): void => {
