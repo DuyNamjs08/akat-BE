@@ -44,7 +44,18 @@ const TokenController = {
       const refreshToken = jwt.sign(data, process.env.REFRESH_TOKEN_SECRET, {
         expiresIn: '3m',
       });
-
+      const tokenExists = await TokenService.findTokenByUserId({
+        user_id: user.id,
+      });
+      if (tokenExists) {
+        const Token = await TokenService.updateAccessToken(user.id, {
+          user_id: user.id,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        successResponse(res, 'Success', Token);
+        return;
+      }
       const Token = await TokenService.createtoken({
         data: {
           user_id: user.id,
@@ -52,7 +63,7 @@ const TokenController = {
           refresh_token: refreshToken,
         },
       });
-      successResponse(res, 'Success', Token);
+      successResponse(res, 'Success create', Token);
     } catch (error) {
       errorResponse(
         res,
@@ -109,11 +120,9 @@ const TokenController = {
           const updateAccessToken = await TokenService.updateAccessToken(
             user.id,
             {
-              data: {
-                access_token: accessToken,
-                refresh_token: refresh_token,
-                user_id: user.id,
-              },
+              access_token: accessToken,
+              refresh_token: refresh_token,
+              user_id: user.id,
             },
           );
           successResponse(

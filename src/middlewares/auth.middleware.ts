@@ -1,41 +1,48 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { errorResponse } from '../helpers/response';
+import { httpStatusCodes } from '../helpers/statusCodes';
+import { httpReasonCodes } from '../helpers/reasonPhrases';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET || 'your-secret-key';
 
 export const authenToken = (
   req: Request,
   res: Response,
   next: NextFunction,
 ): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
-
-  if (!token) {
-    res.status(401).json({ message: 'Access token is missing' });
-    return;
-  }
   try {
     const authorizationHeader = req.headers['authorization'];
     if (!authorizationHeader) {
-      res.status(401).json({
-        message: 'not authorization',
-      });
+      errorResponse(
+        res,
+        httpReasonCodes.UNAUTHORIZED,
+        {},
+        httpStatusCodes.UNAUTHORIZED,
+      );
       return;
     }
     const token = authorizationHeader.split(' ')[1];
     if (!token) {
-      res.status(401).json({
-        message: 'not authorization',
-      });
+      errorResponse(
+        res,
+        httpReasonCodes.UNAUTHORIZED,
+        {},
+        httpStatusCodes.UNAUTHORIZED,
+      );
       return;
     }
 
     jwt.verify(token, JWT_SECRET, (err, data) => {
-      if (err)
-        return res.status(401).json({
-          message: 'forbidan',
-        });
+      if (err) {
+        errorResponse(
+          res,
+          httpReasonCodes.FORBIDDEN,
+          {},
+          httpStatusCodes.FORBIDDEN,
+        );
+        return;
+      }
       next();
     });
   } catch (err: any) {
