@@ -3,6 +3,7 @@ class UserService {
   async createUser({
     email,
     password,
+    role_id,
   }: {
     email: string;
     password: string;
@@ -12,7 +13,7 @@ class UserService {
       data: {
         email,
         password,
-        role_id: '8818feb9-7856-4f11-9023-fc161d394aa4',
+        role_id,
       },
     });
     return User;

@@ -4,7 +4,8 @@ import { errorResponse } from '../helpers/response';
 import { httpStatusCodes } from '../helpers/statusCodes';
 import { httpReasonCodes } from '../helpers/reasonPhrases';
 
-const JWT_SECRET = process.env.ACCESS_TOKEN_SECRET || 'your-secret-key';
+const ACCESS_TOKEN_SECRET =
+  process.env.ACCESS_TOKEN_SECRET || 'your-secret-key';
 
 export const authenToken = (
   req: Request,
@@ -33,7 +34,7 @@ export const authenToken = (
       return;
     }
 
-    jwt.verify(token, JWT_SECRET, (err, data) => {
+    jwt.verify(token, ACCESS_TOKEN_SECRET, (err, data) => {
       if (err) {
         errorResponse(
           res,
