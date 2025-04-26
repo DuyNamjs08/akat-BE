@@ -15,6 +15,9 @@ import { swaggerSpec } from './swagger/swaggerConfig';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import cors from 'cors';
+import RolesRoutes from './routes/roles.routes';
+import UserRoutes from './routes/user.routes';
+import TokenRoutes from './routes/token.route';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -102,7 +105,10 @@ app.use(
 
 // logger.error("An error occurred");
 
+app.use('/api/v1/', UserRoutes);
+app.use('/api/v1/', TokenRoutes);
 app.use('/api/v1/', FacebookRoutes);
+app.use('/api/v1/', RolesRoutes);
 app.get('/', (req: Request, res: Response): void => {
   console.log(`Worker ${process.pid} is processing request`);
   res.send(`Worker ${process.pid} is handling this request`);
