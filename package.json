@@ -13,7 +13,8 @@
     "lint": "eslint . --ext .js,.ts,.mjs,.cjs",
     "lint:fix": "eslint . --ext .js,.ts,.mjs,.cjs --fix",
     "prettier": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "test:ts": "npx tsc"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "@prisma/client": "^6.6.0",
     "amqplib": "^0.10.7",
     "autocannon": "^8.0.0",
+    "bcrypt": "^5.1.1",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -41,6 +43,7 @@
     "@eslint/js": "^9.25.1",
     "@types/amqplib": "^0.10.7",
     "@types/autocannon": "^7.12.6",
+    "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",

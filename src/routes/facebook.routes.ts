@@ -5,7 +5,7 @@ import {
   getAllFacebookPosts,
   createFacebookPost,
 } from '../controllers/facebook.controller';
-import { verifyToken } from '../middlewares/auth.middleware';
+import { authenToken } from '../middlewares/auth.middleware';
 
 /**
  * @swagger

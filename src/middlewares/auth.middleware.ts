@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-export const verifyToken = (
+export const authenToken = (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -15,12 +15,30 @@ export const verifyToken = (
     res.status(401).json({ message: 'Access token is missing' });
     return;
   }
-
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    (req as any).user = decoded;
-    next(); // hợp lệ, tiếp tục
-  } catch (err) {
-    res.status(403).json({ message: 'Invalid or expired token' });
+    const authorizationHeader = req.headers['authorization'];
+    if (!authorizationHeader) {
+      res.status(401).json({
+        message: 'not authorization',
+      });
+      return;
+    }
+    const token = authorizationHeader.split(' ')[1];
+    if (!token) {
+      res.status(401).json({
+        message: 'not authorization',
+      });
+      return;
+    }
+
+    jwt.verify(token, JWT_SECRET, (err, data) => {
+      if (err)
+        return res.status(401).json({
+          message: 'forbidan',
+        });
+      next();
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 };
