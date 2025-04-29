@@ -52,6 +52,12 @@ class UserService {
     });
     return User;
   }
+  async getUserByRoleId(role_id: string) {
+    const User = await prisma.user.findMany({
+      where: { role_id },
+    });
+    return User;
+  }
 }
 
 export default new UserService();

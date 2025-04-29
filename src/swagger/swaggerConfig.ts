@@ -13,6 +13,20 @@ const swaggerOptions: swaggerJSDoc.Options = {
         url: 'http://localhost:4000',
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
   apis: ['./src/routes/*.ts'], // Thay đổi theo vị trí file routes
 };

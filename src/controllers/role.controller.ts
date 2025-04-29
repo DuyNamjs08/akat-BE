@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { successResponse, errorResponse } from '../helpers/response';
 import { httpReasonCodes } from '../helpers/reasonPhrases';
 import { httpStatusCodes } from '../helpers/statusCodes';
+import UserService from '../services/User.service';
 const roleController = {
   createRole: async (req: Request, res: Response): Promise<void> => {
     try {
@@ -87,8 +88,10 @@ const roleController = {
         errorResponse(res, httpReasonCodes.NOT_FOUND, {}, 404);
         return;
       }
+      const users = await UserService.getUserByRoleId(req.params.id);
+      await Promise.all(users.map((item) => UserService.deleteUser(item.id)));
       await roleService.deleteRole(req.params.id);
-      successResponse(res, 'Cập nhật quyền thành công !', role);
+      successResponse(res, 'Xóa quyền thành công !', role);
     } catch (error: any) {
       const statusCode = error.message.includes('not found') ? 404 : 400;
       if (statusCode === 404) {
