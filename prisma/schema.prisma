@@ -84,32 +84,29 @@ model FacebookFanPage {
   page_url        String
   page_avatar_url String
   follower_count  Int
+  fan_count       Int
   page_type       String
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
 
   // Quan hệ 1-1 với FacebookConnections
   connection_id   String    @unique
-  facebook_page_insights FacebookPageInsights?
-  facebookConnections FacebookConnections?
+  facebook_page_insights FacebookPageInsights[]
+  facebookConnections FacebookConnections[]
   @@map("facebook_fan_pages")
 }
 model FacebookConnections {
   id            String    @id @default(uuid())
-  
-  page_id       String     @default("")
   access_token  String[]
   status        String     @default("")
   permissions   String[]
   last_sync     DateTime?
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
-
   // Quan hệ 1-1 với FacebookFanPage
-
   user_id       String
   user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  facebook_fanpage_id String @unique
+  facebook_fanpage_id String 
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
   role_id    String?
 
@@ -117,7 +114,7 @@ model FacebookConnections {
 }
 
 model FacebookPageInsights {
-  id            Int       @id @default(autoincrement()) 
+  id            String       @id @default(uuid()) 
   posts         Int       
   approach      Int       
   interactions  Int       
@@ -130,7 +127,7 @@ model FacebookPageInsights {
   status        String?   
   user_id       String?   
 
-  facebook_fanpage_id String @unique
+  facebook_fanpage_id String 
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
   @@map("facebook_page_insights")
 }

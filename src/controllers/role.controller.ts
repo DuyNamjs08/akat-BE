@@ -6,6 +6,16 @@ import { httpStatusCodes } from '../helpers/statusCodes';
 const roleController = {
   createRole: async (req: Request, res: Response): Promise<void> => {
     try {
+      const roleNameExist = await roleService.getRoleByName(req.body.name);
+      if (!roleNameExist) {
+        errorResponse(
+          res,
+          'Quyền đã tồn tại!',
+          {},
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
+        );
+        return;
+      }
       const role = await roleService.createRole(req.body.name);
       successResponse(res, 'Tạo quyền thành công', role);
     } catch (error) {
