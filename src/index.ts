@@ -2,7 +2,6 @@ import cluster from 'cluster';
 import os from 'os';
 
 import compression from 'compression';
-import redisClient from './config/redis-config';
 import logger from './config/logger';
 import multer from 'multer';
 // import ProductServiceTest from "./src/test/product.test";
@@ -21,8 +20,14 @@ import TokenRoutes from './routes/token.route';
 import FacebookFanPageRoutes from './routes/facebookFanpage.route';
 import FacebookConnection from './routes/facebookConnection.route';
 import FacebookPageInsight from './routes/facebookPageInsight.route';
+import uploadtestRoutes from './routes/test.routes';
+import resourcesRoutes from './routes/resources.routes';
 import Document from './models/document.model';
 import OpenAI from 'openai';
+import { readFile, writeFile } from 'fs/promises';
+import path from 'path';
+import redisClient from './config/redis-config';
+import './workers/facebook.worker';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -89,29 +94,16 @@ app.use(
     },
   }),
 );
-// redisClient.on("ready", async () => {
-//   console.log("Redis is ready!");
 
-//   try {
-//     // 👉 Đăng ký subscriber TRƯỚC
-//     from"./src/test/inventory.test");
-//     // 👉 Sau đó mới publish message
-//     await ProductServiceTest.purchaseProduct("product:001", 10);
-//   } catch (err) {
-//     console.error("Error during test:", err);
-//   } finally {
-//     // Delay một chút để Redis có thời gian gửi/nhận message
-//     setTimeout(() => {
-//       redisClient.quit();
-//     }, 300);
-//   }
-// });
-
-// redisClient.on("error", (err) => {
-//   console.error("Redis connection failed:", err);
-// });
-
-// logger.error("An error occurred");
+(async () => {
+  try {
+    await redisClient.set('test_key', 'hello');
+    const value = await redisClient.get('test_key');
+    console.log('Redis test value:', value);
+  } catch (err) {
+    console.error('Redis operation failed:', err);
+  }
+})();
 async function getEmbedding(text: string) {
   console.log('Getting embedding for text:', text);
   console.log(process.env.OPENAI_API_KEY);
@@ -126,6 +118,68 @@ async function getEmbedding(text: string) {
   return embedding;
 }
 
+async function readJsonFiles(file1: string, file2: string) {
+  const baseDir = path.join(__dirname, '..', 'tranning'); // đi ra khỏi src, vào tranning
+  const [data1, data2] = await Promise.all([
+    readFile(path.join(baseDir, file1), 'utf8'),
+    readFile(path.join(baseDir, file2), 'utf8'),
+  ]);
+  return [JSON.parse(data1), JSON.parse(data2)];
+}
+function combineJsonData(json1: any, json2: any) {
+  return [...json1, ...json2];
+}
+
+function formatForOpenAIFineTuning(data: any[]) {
+  return data.map((item: any) => {
+    const text = item.text?.trim() || '';
+    const name = item.user?.name || 'Người dùng';
+    const time = item.time || 'không rõ ngày';
+
+    return {
+      prompt: `Phân tích bài viết sau:\nNgười đăng: ${name}\nThời gian: ${time}\nNội dung: ${text}\n\nHãy xác định chủ đề và viết tóm tắt ngắn gọn.`,
+      completion: 'Chủ đề: [điền chủ đề]\nTóm tắt: [điền nội dung tóm tắt]', // bạn cần tự gán hoặc dùng GPT hỗ trợ tạo trước fine-tune
+    };
+  });
+}
+
+async function saveToJsonl(data: any, outputPath: any) {
+  const jsonlContent = data.map((item: any) => JSON.stringify(item)).join('\n');
+  await writeFile(outputPath, jsonlContent, 'utf8');
+}
+app.post('/add-fine-turning', async (req, res) => {
+  try {
+    const [json1, json2] = await readJsonFiles('file1.json', 'file2.json');
+    console.log(json2);
+    const combinedData = combineJsonData(json1, json2);
+    const formattedData = formatForOpenAIFineTuning(combinedData);
+    await saveToJsonl(
+      formattedData,
+      path.join(__dirname, '..', 'tranning', 'output.jsonl'),
+    );
+    const outputPath = path.join(__dirname, '..', 'training', 'output.jsonl');
+    // // Bước 5: Upload file JSONL lên OpenAI
+    // const file = await openai.files.create({
+    //   file: outputPath, // Đường dẫn đến file JSONL đã chuẩn bị
+    //   purpose: 'fine-tune',
+    // });
+
+    // // Bước 6: Fine-tune mô hình
+    // const fineTune = await openai.fineTunes.create({
+    //   training_file: file.id, // Đặt file_id của bạn ở đây
+    //   model: 'davinci', // Bạn có thể chọn model phù hợp
+    //   n_epochs: 4, // Số vòng huấn luyện
+    // });
+
+    // console.log('Fine-tune started: ', fineTune);
+
+    // Bước 7: Phản hồi thành công
+    res.status(200).json({ message: 'Document saved and fine-tuning started' });
+  } catch (error) {
+    console.error('Error adding document:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 app.post('/add-document', async (req, res) => {
   try {
     const { content } = req.body;
@@ -187,6 +241,8 @@ app.post('/ask', async (req, res) => {
   }
 });
 
+app.use('/api/v1/', resourcesRoutes);
+app.use('/api/v1/', uploadtestRoutes);
 app.use('/api/v1/', FacebookConnection);
 app.use('/api/v1/', FacebookPageInsight);
 app.use('/api/v1/', FacebookFanPageRoutes);

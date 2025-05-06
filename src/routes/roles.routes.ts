@@ -73,7 +73,7 @@ router.post('/role', roleController.createRole);
  *                                      type: string
  *                                      example: 2025-04-28T05:34:49.485Z
  */
-router.get('/role', authenToken, roleController.getAllRoles);
+router.get('/role', roleController.getAllRoles);
 
 /**
  * @swagger

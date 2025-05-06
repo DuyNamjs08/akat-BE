@@ -8,8 +8,20 @@ const FacebookFanPageController = {
   createFacebookFanPage: async (req: Request, res: Response): Promise<void> => {
     try {
       const data = req.body;
-      const response = await FacebookFanPageService.createFacebookFanPage(data);
-      successResponse(res, 'Tạo facebook fanpages thành công!', response);
+      const FacebookFanPage =
+        await FacebookFanPageService.getFacebookFanPageById(req.body.id);
+      if (!FacebookFanPage) {
+        const response =
+          await FacebookFanPageService.createFacebookFanPage(data);
+        successResponse(res, 'Tạo facebook fanpages thành công!', response);
+        return;
+      }
+      const FacebookFanPageNew =
+        await FacebookFanPageService.updateFacebookFanPage(
+          req.body.id,
+          req.body,
+        );
+      successResponse(res, 'Cập nhật fanpage thành công !', FacebookFanPageNew);
     } catch (error) {
       errorResponse(
         res,

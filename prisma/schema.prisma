@@ -90,7 +90,7 @@ model FacebookFanPage {
   updated_at      DateTime  @updatedAt
 
   // Quan hệ 1-1 với FacebookConnections
-  connection_id   String    @unique
+  connection_id   String?    
   facebook_page_insights FacebookPageInsights[]
   facebookConnections FacebookConnections[]
   @@map("facebook_fan_pages")
@@ -109,6 +109,11 @@ model FacebookConnections {
   facebook_fanpage_id String 
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
   role_id    String?
+  page_url    String?
+  page_avatar_url    String?
+  follower_count Int?
+  fan_count Int?
+  page_type String?
 
   @@map("facebook_connections")
 }

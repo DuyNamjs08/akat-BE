@@ -13,11 +13,15 @@ const FacebookInsightController = {
           req.body.user_id,
         );
       if (connections) {
-        errorResponse(
+        const FacebookInsightNew =
+          await FacebookInsightService.updateFacebookInsight(
+            connections.id,
+            req.body,
+          );
+        successResponse(
           res,
-          'Tài khoản đã có Facebook page insight từ trước',
-          {},
-          httpStatusCodes.INTERNAL_SERVER_ERROR,
+          'Cập nhật facebook page insight thành công !',
+          FacebookInsightNew,
         );
         return;
       }
@@ -38,8 +42,9 @@ const FacebookInsightController = {
     res: Response,
   ): Promise<void> => {
     try {
+      const data = req.query;
       const FacebookInsights =
-        await FacebookInsightService.getAllFacebookInsights();
+        await FacebookInsightService.getAllFacebookInsights(data);
       successResponse(res, 'Danh sách facebook page insight', FacebookInsights);
     } catch (error) {
       errorResponse(

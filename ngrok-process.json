@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "ngrok-be",
+      "script": "./run-ngrok.sh",
+      "autorestart": true,
+      "interpreter": "bash"
+    }
+  ]
+}
