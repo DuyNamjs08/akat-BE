@@ -8,7 +8,7 @@ const roleController = {
   createRole: async (req: Request, res: Response): Promise<void> => {
     try {
       const roleNameExist = await roleService.getRoleByName(req.body.name);
-      if (!roleNameExist) {
+      if (roleNameExist) {
         errorResponse(
           res,
           'Quyền đã tồn tại!',
