@@ -12,7 +12,6 @@ datasource db {
 model Role {
   id        String     @id @default(uuid())
   name      String  @unique
-  users     User[]
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   @@map("roles")
@@ -56,8 +55,7 @@ model User {
   // Quan hệ với AdAccountRental (từ yêu cầu trước)
   rentals                 AdAccountRental[]
   profile                 Profile?
-  role_id    String
-  role      Role    @relation(fields: [role_id], references: [id])
+  role_id                 String?
   facebook_connections FacebookConnections[]
   token                   Token[]
 
