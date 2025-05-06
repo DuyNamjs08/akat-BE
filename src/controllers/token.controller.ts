@@ -10,7 +10,6 @@ const TokenController = {
   createAccessToken: async (req: Request, res: Response): Promise<void> => {
     try {
       const data = req.body;
-      console.log('data', data);
       const user = await UserService.getUserByEmail(data.email);
       if (!user) {
         errorResponse(
@@ -21,7 +20,6 @@ const TokenController = {
         );
         return;
       }
-      console.log('user', user);
       const byHash = await bcrypt.compare(req.body.password, user.password);
       if (!byHash) {
         errorResponse(
@@ -40,7 +38,6 @@ const TokenController = {
           'Token secrets are not defined in environment variables',
         );
       }
-      console.log(2);
       const accessToken = jwt.sign(data, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1m',
       });
@@ -50,7 +47,6 @@ const TokenController = {
       const tokenExists = await TokenService.findTokenByUserId({
         user_id: user.id,
       });
-      console.log('tokenExists', tokenExists);
       if (tokenExists) {
         const Token = await TokenService.updateAccessToken(user.id, {
           user_id: user.id,
