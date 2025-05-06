@@ -11,6 +11,7 @@ const ResourcesController = {
   ): Promise<void> => {
     try {
       const data = req.body;
+      console.log('>>????', data);
       const fanpage_count = await prisma.facebookFanPage.count({
         where: data,
         orderBy: {
@@ -23,6 +24,12 @@ const ResourcesController = {
           created_at: 'desc',
         },
       });
+      const fanpage_insight_data = await prisma.facebookPageInsights.findMany({
+        where: data,
+        orderBy: {
+          created_at: 'desc',
+        },
+      });
       const totalCounts = fanpage_data.reduce(
         (acc, cur) => ({
           follower_count: acc.follower_count + (cur.follower_count || 0),
@@ -30,10 +37,18 @@ const ResourcesController = {
         }),
         { follower_count: 0, fan_count: 0 },
       );
-      console.log('totalCounts', totalCounts);
+      const totalInsightCounts = fanpage_insight_data.reduce(
+        (acc, cur) => ({
+          posts: acc.posts + (cur.posts || 0),
+          approach: acc.approach + (cur.approach || 0),
+          interactions: acc.interactions + (cur.interactions || 0),
+        }),
+        { posts: 0, approach: 0, interactions: 0 },
+      );
       successResponse(res, 'Thông tin tài nguyên', {
         fanpage_count,
         ...totalCounts,
+        ...totalInsightCounts,
       });
     } catch (error) {
       errorResponse(

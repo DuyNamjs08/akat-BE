@@ -93,6 +93,8 @@ model FacebookFanPage {
   connection_id   String?    
   facebook_page_insights FacebookPageInsights[]
   facebookConnections FacebookConnections[]
+  facebook_post FacebookPost[]
+  facebook_post_draft FacebookPostDraft[]
   @@map("facebook_fan_pages")
 }
 model FacebookConnections {
@@ -136,7 +138,38 @@ model FacebookPageInsights {
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
   @@map("facebook_page_insights")
 }
-
+model FacebookPost {
+  id          String      @id @default(uuid())
+  content     String   // Nội dung bài đăng
+  facebook_fanpage_id String 
+  facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
+  posted_at    DateTime // Thời gian đăng bài
+  likes       Int      // Số lượt thích
+  comments    Int      // Số bình luận
+  shares      Int      // Số lượt chia sẻ
+  status      String?
+  post_avatar_url String? @default("")
+  schedule      Boolean?   @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+   @@map("facebook_posts")
+}
+model FacebookPostDraft {
+  id          String      @id @default(uuid())
+  content     String   // Nội dung bài đăng
+  facebook_fanpage_id String 
+  facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
+  posted_at    DateTime // Thời gian đăng bài
+  likes       Int      // Số lượt thích
+  comments    Int      // Số bình luận
+  shares      Int      // Số lượt chia sẻ
+  status      String?
+  post_avatar_url String[] @default([])
+  schedule      Boolean?   @default(false)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+   @@map("facebook_post_draft")
+}
 
 model Profile {
   user_id    String      @id

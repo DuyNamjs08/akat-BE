@@ -22,12 +22,14 @@ import FacebookConnection from './routes/facebookConnection.route';
 import FacebookPageInsight from './routes/facebookPageInsight.route';
 import uploadtestRoutes from './routes/test.routes';
 import resourcesRoutes from './routes/resources.routes';
+import FacebookPostRoutes from './routes/facebookPost.route';
 import Document from './models/document.model';
 import OpenAI from 'openai';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import redisClient from './config/redis-config';
 import './workers/facebook.worker';
+import prisma from './config/prisma';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -79,7 +81,12 @@ const numsWorker = Math.min(4, numCPUs);
 const app: Application = express();
 connectDB();
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: '*',
+  }),
+);
+
 const upload = multer({ dest: 'uploads/' });
 const openai = new OpenAI({
   apiKey: process.env['OPENAI_API_KEY'],
@@ -89,7 +96,7 @@ app.use(
   compression({
     threshold: 1024,
     filter: (req, res) => {
-      console.log('Compression check for:', req.url);
+      // console.log('Compression check for:', req.url);
       return compression.filter(req, res);
     },
   }),
@@ -241,6 +248,7 @@ app.post('/ask', async (req, res) => {
   }
 });
 
+app.use('/api/v1/', FacebookPostRoutes);
 app.use('/api/v1/', resourcesRoutes);
 app.use('/api/v1/', uploadtestRoutes);
 app.use('/api/v1/', FacebookConnection);
@@ -250,6 +258,72 @@ app.use('/api/v1/', UserRoutes);
 app.use('/api/v1/', TokenRoutes);
 app.use('/api/v1/', FacebookRoutes);
 app.use('/api/v1/', RolesRoutes);
+// Endpoint để xác thực webhook (Facebook yêu cầu)
+app.get('/facebook-webhook', (req, res) => {
+  console.log('Webhook GET request headers:', req.headers);
+  const VERIFY_TOKEN = 'facebook12345token';
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  console.log(mode, token, challenge);
+  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    console.log('Webhook verified');
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+// Endpoint nhận webhook từ Facebook (khi có sự kiện mới)
+app.post('/facebook-webhook', async (req, res) => {
+  try {
+    // console.log('Received webhook payload:', JSON.stringify(req.body, null, 2));
+    const entries = req.body.entry;
+    for (const entry of entries) {
+      if (entry.changes) {
+        for (const change of entry.changes) {
+          if (
+            change.field === 'feed' &&
+            ['status', 'photo'].includes(change.value.item) &&
+            change.value.verb === 'add'
+          ) {
+            const {
+              message, // Nội dung bài viết
+              post_id, // ID bài viết
+              created_time, // Thời gian đăng bài
+              photos,
+              link,
+            } = change.value;
+            console.log(
+              'Received webhook payload:',
+              JSON.stringify(req.body, null, 2),
+            );
+            await prisma.facebookPost.create({
+              data: {
+                id: post_id,
+                content: message || '',
+                facebook_fanpage_id: entry.id,
+                posted_at: new Date(created_time * 1000),
+                likes: 0,
+                comments: 0,
+                shares: 0,
+                status: 'published',
+                post_avatar_url: link
+                  ? link
+                  : photos
+                    ? JSON.stringify(photos)
+                    : '',
+              },
+            });
+          }
+        }
+      }
+    }
+    res.status(200).send('ok');
+  } catch (err) {
+    console.error('Webhook processing error:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
 app.get('/', (req: Request, res: Response): void => {
   console.log(`Worker ${process.pid} is processing request`);
   res.send(`Worker ${process.pid} is handling this request`);
