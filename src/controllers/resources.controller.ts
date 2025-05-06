@@ -13,13 +13,13 @@ const ResourcesController = {
       const data = req.body;
       console.log('>>????', data);
       const fanpage_count = await prisma.facebookFanPage.count({
-        where: data,
+        where: {},
         orderBy: {
           created_at: 'desc',
         },
       });
       const fanpage_data = await prisma.facebookFanPage.findMany({
-        where: data,
+        where: {},
         orderBy: {
           created_at: 'desc',
         },
