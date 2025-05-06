@@ -6,8 +6,9 @@ class FacebookConnectionService {
     });
     return FacebookConnection;
   }
-  async getAllFacebookConnections() {
+  async getAllFacebookConnections(data: any) {
     return await prisma.facebookConnections.findMany({
+      where: data,
       orderBy: {
         created_at: 'desc',
       },

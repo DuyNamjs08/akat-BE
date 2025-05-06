@@ -6,8 +6,9 @@ class FacebookInsightService {
     });
     return FacebookInsight;
   }
-  async getAllFacebookInsights() {
+  async getAllFacebookInsights(data: any) {
     return await prisma.facebookPageInsights.findMany({
+      where: data,
       orderBy: {
         created_at: 'desc',
       },

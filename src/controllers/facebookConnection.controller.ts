@@ -42,11 +42,15 @@ const FacebookConnectionController = {
           req.body.user_id,
         );
       if (connections) {
-        errorResponse(
+        const FacebookConnectionNew =
+          await FacebookConnectionService.updateFacebookConnection(
+            req.params.id,
+            req.body,
+          );
+        successResponse(
           res,
-          'Connection đã có',
-          {},
-          httpStatusCodes.INTERNAL_SERVER_ERROR,
+          'Cập nhật facebook connections thành công !',
+          FacebookConnectionNew,
         );
         return;
       }
@@ -67,8 +71,9 @@ const FacebookConnectionController = {
     res: Response,
   ): Promise<void> => {
     try {
+      const data = req.query;
       const FacebookConnections =
-        await FacebookConnectionService.getAllFacebookConnections();
+        await FacebookConnectionService.getAllFacebookConnections(data);
       successResponse(
         res,
         'Danh sách facebook connections',

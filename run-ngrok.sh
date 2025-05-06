@@ -1,0 +1,1 @@
+/usr/local/bin/ngrok http 4000 --log=stdout

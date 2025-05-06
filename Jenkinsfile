@@ -99,6 +99,10 @@ stage('Deploy') {
 
                     ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npm install' || { echo "Lỗi khi cài đặt dependencies trên VPS"; exit 1; }
 
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npx prisma migrate dev' || { echo "Lỗi khi migrate Prisma Client trên VPS"; exit 1; }
+                    
+                    ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npx prisma generate' || { echo "Lỗi khi generate Prisma Client trên VPS"; exit 1; }
+
                     ssh ${VPS_USER}@${VPS_IP} 'cd ${DEPLOY_DIR} && ${nvmInit} && npm run build' || { echo "Lỗi khi build trên VPS"; exit 1; }
 
                     # Copy thư mục dist và file ecosystem.config.js
