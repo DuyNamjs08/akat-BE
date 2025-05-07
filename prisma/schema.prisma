@@ -51,6 +51,7 @@ model User {
   is_sso_user             Boolean  @default(false)
   deleted_at              DateTime?
   is_anonymous            Boolean  @default(false)
+  post_sync               Boolean  @default(false)
 
   // Quan hệ với AdAccountRental (từ yêu cầu trước)
   rentals                 AdAccountRental[]
@@ -137,7 +138,7 @@ model FacebookPageInsights {
   @@map("facebook_page_insights")
 }
 model FacebookPost {
-  id          String      @id @default(uuid())
+  id          String      @id 
   content     String   // Nội dung bài đăng
   facebook_fanpage_id String 
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)

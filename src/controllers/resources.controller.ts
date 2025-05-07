@@ -12,20 +12,33 @@ const ResourcesController = {
     try {
       const data = req.body;
       console.log('>>????', data);
+      const { facebook_fanpage_id = [] } = data;
       const fanpage_count = await prisma.facebookFanPage.count({
-        where: {},
+        where: {
+          id: {
+            in: facebook_fanpage_id,
+          },
+        },
         orderBy: {
           created_at: 'desc',
         },
       });
       const fanpage_data = await prisma.facebookFanPage.findMany({
-        where: {},
+        where: {
+          id: {
+            in: facebook_fanpage_id,
+          },
+        },
         orderBy: {
           created_at: 'desc',
         },
       });
       const fanpage_insight_data = await prisma.facebookPageInsights.findMany({
-        where: data,
+        where: {
+          facebook_fanpage_id: {
+            in: facebook_fanpage_id,
+          },
+        },
         orderBy: {
           created_at: 'desc',
         },

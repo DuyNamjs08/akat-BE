@@ -7,8 +7,8 @@ router.post(
   '/facebook-post',
   FacebookPostController.createAndUpdateFacebookPost,
 );
-router.get(
-  '/facebook-post',
+router.post(
+  '/facebook-post-list',
   //   authenToken,
   FacebookPostController.getAllFacebookPosts,
 );

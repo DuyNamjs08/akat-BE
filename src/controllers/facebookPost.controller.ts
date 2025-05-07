@@ -13,7 +13,7 @@ const FacebookPostController = {
   ): Promise<void> => {
     try {
       const postsData = req.body;
-      const BATCH_SIZE = 100;
+      const BATCH_SIZE = 10;
       if (!Array.isArray(postsData)) {
         errorResponse(res, 'Request body must be an array', null, 400);
         return;
@@ -73,8 +73,32 @@ const FacebookPostController = {
   getAllFacebookPosts: async (req: Request, res: Response): Promise<void> => {
     try {
       const data = req.query;
-      const FacebookPosts = await FacebookPostService.getAllFacebookPosts(data);
-      successResponse(res, 'Danh sách facebook Posts', FacebookPosts);
+      const { facebook_fanpage_id } = req.body;
+      const { pageSize = 10, page = 1 } = data;
+      const skip = (Number(page) - 1) * Number(pageSize);
+      const totalCount = await prisma.facebookPost.count({
+        where: {
+          facebook_fanpage_id: {
+            in: facebook_fanpage_id,
+          },
+        },
+      });
+      const FacebookPosts = await prisma.facebookPost.findMany({
+        where: {
+          facebook_fanpage_id: {
+            in: facebook_fanpage_id,
+          },
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+        skip,
+        take: pageSize ? Number(pageSize) : 10,
+      });
+      successResponse(res, 'Danh sách facebook Posts', {
+        totalCount,
+        data: FacebookPosts,
+      });
     } catch (error) {
       errorResponse(
         res,
