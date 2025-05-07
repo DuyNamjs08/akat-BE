@@ -34,9 +34,13 @@ const TokenController = {
         !process.env.ACCESS_TOKEN_SECRET ||
         !process.env.REFRESH_TOKEN_SECRET
       ) {
-        throw new Error(
+        errorResponse(
+          res,
           'Token secrets are not defined in environment variables',
+          {},
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
         );
+        return;
       }
       const accessToken = jwt.sign(data, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: '1m',
