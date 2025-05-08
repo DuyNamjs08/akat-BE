@@ -91,3 +91,23 @@ export const uploadToR2 = async (
     throw err;
   }
 };
+export const deleteMultipleFromR2 = async (
+  fileNames: string[],
+): Promise<void> => {
+  if (fileNames.length === 0) return;
+
+  const params = {
+    Bucket: process.env.R2_BUCKET_NAME!,
+    Delete: {
+      Objects: fileNames.map((name) => ({ Key: name })),
+      Quiet: false,
+    },
+  };
+
+  try {
+    const result = await s3.deleteObjects(params).promise();
+    console.log('Đã xóa các file:', result.Deleted);
+  } catch (err) {
+    console.error('Lỗi khi xóa nhiều file khỏi R2:', err);
+  }
+};

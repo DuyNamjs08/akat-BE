@@ -19,10 +19,10 @@ const roleController = {
       }
       const role = await roleService.createRole(req.body.name);
       successResponse(res, 'Tạo quyền thành công', role);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -33,10 +33,10 @@ const roleController = {
     try {
       const roles = await roleService.getAllRoles();
       successResponse(res, 'Danh sách quyền', roles);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -47,10 +47,10 @@ const roleController = {
     try {
       const role = await roleService.getRoleById(req.params.id);
       successResponse(res, 'Success', role);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -76,7 +76,7 @@ const roleController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
@@ -97,7 +97,7 @@ const roleController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },

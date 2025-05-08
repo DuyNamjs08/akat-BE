@@ -18,10 +18,10 @@ const userController = {
       req.body.password = hashedPassword;
       const user = await UserService.createUser(req.body);
       successResponse(res, 'Tạo người dùng thành công', user);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -31,10 +31,10 @@ const userController = {
     try {
       const Users = await UserService.getAllUsers();
       successResponse(res, 'Danh sách người dùng', Users);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -45,10 +45,10 @@ const userController = {
     try {
       const User = await UserService.getUserById(req.params.id);
       successResponse(res, 'Success', User);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -74,7 +74,7 @@ const userController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
@@ -98,7 +98,7 @@ const userController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },

@@ -68,10 +68,10 @@ const TokenController = {
         },
       });
       successResponse(res, 'Success create', Token);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -103,9 +103,13 @@ const TokenController = {
         !process.env.ACCESS_TOKEN_SECRET ||
         !process.env.REFRESH_TOKEN_SECRET
       ) {
-        throw new Error(
+        errorResponse(
+          res,
           'Token secrets are not defined in environment variables',
+          null,
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
         );
+        return;
       }
       jwt.verify(
         refresh_token,
@@ -137,10 +141,10 @@ const TokenController = {
           return;
         },
       );
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );

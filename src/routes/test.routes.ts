@@ -15,9 +15,12 @@ router.post(
 
       const fileUploadPromises = (req.files as Express.Multer.File[]).map(
         async (file) => {
+          const timestamp = Date.now();
+          const originalFilename = file.filename;
+          const newFilename = `${originalFilename}-${timestamp}`;
           const result = await uploadToR2(
             file.path,
-            `user-uploads/${file.filename}`,
+            `user-uploads/${newFilename}`,
           );
           return {
             url: `${process.env.R2_PUBLIC_URL}/${result.Key}`,
