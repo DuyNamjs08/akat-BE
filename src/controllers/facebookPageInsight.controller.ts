@@ -135,5 +135,34 @@ const FacebookInsightController = {
       }
     }
   },
+
+  deleteFacebookInsightWithConnection: async (req: Request, res: Response) => {
+    try {
+      const pageInsights =
+        await FacebookInsightService.getFacebookInsightByFacebookFanpageId(
+          req.body.facebook_fanpage_id,
+          req.body.user_id,
+        );
+
+      if (pageInsights?.id) {
+        await FacebookInsightService.deleteFacebookInsight(pageInsights.id);
+      } else {
+        throw new Error('Không tìm thấy Facebook Page Insight với id hợp lệ');
+      }
+
+      successResponse(
+        res,
+        'Xóa facebook page insight thành công !',
+        pageInsights,
+      );
+    } catch (error: any) {
+      errorResponse(
+        res,
+        error?.message,
+        error,
+        httpStatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
 };
 export default FacebookInsightController;
