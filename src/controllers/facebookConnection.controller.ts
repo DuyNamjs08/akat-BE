@@ -57,10 +57,10 @@ const FacebookConnectionController = {
       const response =
         await FacebookConnectionService.createFacebookConnection(data);
       successResponse(res, 'Tạo facebook connections thành công!', response);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -79,10 +79,10 @@ const FacebookConnectionController = {
         'Danh sách facebook connections',
         FacebookConnections,
       );
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -99,10 +99,10 @@ const FacebookConnectionController = {
           req.params.id,
         );
       successResponse(res, 'Success', FacebookConnection);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -165,7 +165,7 @@ const FacebookConnectionController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
@@ -199,7 +199,7 @@ const FacebookConnectionController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },

@@ -63,10 +63,10 @@ const ResourcesController = {
         ...totalCounts,
         ...totalInsightCounts,
       });
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );

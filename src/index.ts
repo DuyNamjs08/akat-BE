@@ -23,6 +23,7 @@ import FacebookPageInsight from './routes/facebookPageInsight.route';
 import uploadtestRoutes from './routes/test.routes';
 import resourcesRoutes from './routes/resources.routes';
 import FacebookPostRoutes from './routes/facebookPost.route';
+import FacebookSchedualRoutes from './routes/facebookSchedual.route';
 import Document from './models/document.model';
 import OpenAI from 'openai';
 import { readFile, writeFile } from 'fs/promises';
@@ -248,6 +249,7 @@ app.post('/ask', async (req, res) => {
   }
 });
 
+app.use('/api/v1/', FacebookSchedualRoutes);
 app.use('/api/v1/', FacebookPostRoutes);
 app.use('/api/v1/', resourcesRoutes);
 app.use('/api/v1/', uploadtestRoutes);

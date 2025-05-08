@@ -22,10 +22,10 @@ const FacebookFanPageController = {
           req.body,
         );
       successResponse(res, 'Cập nhật fanpage thành công !', FacebookFanPageNew);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -39,10 +39,10 @@ const FacebookFanPageController = {
       const FacebookFanPages =
         await FacebookFanPageService.getAllFacebookFanPages();
       successResponse(res, 'Danh sách fanpages', FacebookFanPages);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -57,10 +57,10 @@ const FacebookFanPageController = {
       const FacebookFanPage =
         await FacebookFanPageService.getFacebookFanPageById(req.params.id);
       successResponse(res, 'Success', FacebookFanPage);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -91,7 +91,7 @@ const FacebookFanPageController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
@@ -116,7 +116,7 @@ const FacebookFanPageController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },

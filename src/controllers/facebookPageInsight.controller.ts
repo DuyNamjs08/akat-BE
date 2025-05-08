@@ -28,10 +28,10 @@ const FacebookInsightController = {
       const data = req.body;
       const response = await FacebookInsightService.createFacebookInsight(data);
       successResponse(res, 'Tạo facebook page insight thành công!', response);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -46,10 +46,10 @@ const FacebookInsightController = {
       const FacebookInsights =
         await FacebookInsightService.getAllFacebookInsights(data);
       successResponse(res, 'Danh sách facebook page insight', FacebookInsights);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -64,10 +64,10 @@ const FacebookInsightController = {
       const FacebookInsight =
         await FacebookInsightService.getFacebookInsightById(req.params.id);
       successResponse(res, 'Success', FacebookInsight);
-    } catch (error) {
+    } catch (error: any) {
       errorResponse(
         res,
-        'Internet server error',
+        error?.message,
         error,
         httpStatusCodes.INTERNAL_SERVER_ERROR,
       );
@@ -102,7 +102,7 @@ const FacebookInsightController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
@@ -131,7 +131,7 @@ const FacebookInsightController = {
       if (statusCode === 404) {
         errorResponse(res, httpReasonCodes.NOT_FOUND, error, statusCode);
       } else {
-        errorResponse(res, 'Internet server error', error, statusCode);
+        errorResponse(res, error?.message, error, statusCode);
       }
     }
   },
