@@ -6,6 +6,15 @@ import FacebookScheduleService from '../services/FacebookSchedule.service';
 import { createPostFacebook, facebookQueue } from '../workers/facebook.worker';
 import { uploadToR2 } from '../middlewares/upload.middleware';
 import prisma from '../config/prisma';
+import {
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  differenceInDays,
+  format,
+  addDays,
+} from 'date-fns';
 
 const FacebookScheduleController = {
   createFacebookSchedule: async (
@@ -66,13 +75,22 @@ const FacebookScheduleController = {
             },
             data: {
               schedule: true,
+              status: 'published',
             },
           });
           successResponse(res, 'Tạo bài viết thành công!', createPost);
           return;
         }
       }
-
+      await prisma.facebookPostDraft.update({
+        where: {
+          id: response.id,
+        },
+        data: {
+          schedule: true,
+          status: 'pending',
+        },
+      });
       facebookQueue.add(
         { ...response, access_token },
         {
@@ -97,14 +115,124 @@ const FacebookScheduleController = {
     res: Response,
   ): Promise<void> => {
     try {
-      const data = req.query;
-      const FacebookSchedules =
-        await FacebookScheduleService.getAllFacebookSchedules();
-      successResponse(
-        res,
-        'Danh sách facebook page insight',
-        FacebookSchedules,
-      );
+      const { user_id, date, type, listPageId = [] } = req.query;
+      console.log('listPageId', listPageId);
+      const inputDate = new Date();
+      if (!user_id) {
+        errorResponse(
+          res,
+          'Không user_id!',
+          null,
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
+        );
+        return;
+      }
+      if (!date) {
+        errorResponse(
+          res,
+          'Ngày là bắt buộc!',
+          null,
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
+        );
+        return;
+      }
+      let listInsight = [];
+      if (
+        typeof listPageId === 'string' &&
+        Array.isArray(JSON.parse(listPageId)) &&
+        JSON.parse(listPageId).length > 0
+      ) {
+        listInsight = await prisma.facebookPageInsights.findMany({
+          where: {
+            facebook_fanpage_id: {
+              in: JSON.parse(listPageId) as string[],
+            },
+          },
+        });
+      } else {
+        listInsight = await prisma.facebookPageInsights.findMany({
+          where: {
+            user_id: typeof user_id === 'string' ? user_id : undefined,
+          },
+        });
+      }
+      if (listInsight.length == 0) {
+        successResponse(res, 'Danh sách facebook schedule', []);
+        return;
+      }
+      if (type == 'week') {
+        const weekStart = startOfWeek(inputDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(inputDate, { weekStartsOn: 1 });
+        const posts = await prisma.facebookPostDraft.findMany({
+          where: {
+            facebook_fanpage_id: {
+              in: listInsight.map((item) => item.facebook_fanpage_id),
+            },
+            posted_at: {
+              gte: weekStart,
+              lte: weekEnd,
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        });
+        const numDays = differenceInDays(weekEnd, weekStart) + 1;
+        const dateArray = Array.from({ length: numDays }, (_, i) => ({
+          date: format(addDays(weekStart, i), 'yyyy-MM-dd'),
+          list: [] as typeof posts,
+        }));
+        posts.forEach((post) => {
+          const postDate = format(new Date(post.posted_at), 'yyyy-MM-dd');
+
+          const matchedDay = dateArray.find((d) => d.date === postDate);
+          if (matchedDay) {
+            matchedDay.list.push(post);
+          }
+        });
+        successResponse(res, 'Danh sách facebook schedule', dateArray);
+        return;
+      } else if (type == 'month') {
+        const monthStart = startOfMonth(inputDate);
+        const monthEnd = endOfMonth(inputDate);
+        const posts = await prisma.facebookPostDraft.findMany({
+          where: {
+            facebook_fanpage_id: {
+              in: listInsight.map((item) => item.facebook_fanpage_id),
+            },
+            posted_at: {
+              gte: monthStart,
+              lte: monthEnd,
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        });
+        const numDays = differenceInDays(monthEnd, monthStart) + 1;
+        const dateArray = Array.from({ length: numDays }, (_, i) => ({
+          date: format(addDays(monthStart, i), 'yyyy-MM-dd'),
+          list: [] as typeof posts,
+        }));
+        posts.forEach((post) => {
+          const postDate = format(new Date(post.posted_at), 'yyyy-MM-dd');
+
+          const matchedDay = dateArray.find((d) => d.date === postDate);
+          if (matchedDay) {
+            matchedDay.list.push(post);
+          }
+        });
+        successResponse(res, 'Danh sách facebook schedule', dateArray);
+        return;
+      } else {
+        errorResponse(
+          res,
+          'Type không hợp lệ',
+          null,
+          httpStatusCodes.INTERNAL_SERVER_ERROR,
+        );
+        return;
+      }
     } catch (error: any) {
       errorResponse(
         res,

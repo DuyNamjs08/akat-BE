@@ -299,6 +299,11 @@ app.post('/facebook-webhook', async (req, res) => {
               'Received webhook payload:',
               JSON.stringify(req.body, null, 2),
             );
+            const response = await prisma.facebookFanPage.findFirst({
+              where: {
+                id: post_id,
+              },
+            });
             await prisma.facebookPost.create({
               data: {
                 id: post_id,
@@ -309,6 +314,7 @@ app.post('/facebook-webhook', async (req, res) => {
                 comments: 0,
                 shares: 0,
                 status: 'published',
+                page_name: response?.page_name || ' ',
                 post_avatar_url: link
                   ? link
                   : photos
