@@ -132,7 +132,7 @@ model FacebookPageInsights {
   category      String?   
   status        String?   
   user_id       String?   
-
+  access_token  String[]
   facebook_fanpage_id String 
   facebookFanpage   FacebookFanPage @relation(fields: [facebook_fanpage_id], references: [id], onDelete: Cascade)
   @@map("facebook_page_insights")
@@ -151,6 +151,7 @@ model FacebookPost {
   schedule      Boolean?   @default(false)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
+  page_name       String? @default("")
    @@map("facebook_posts")
 }
 model FacebookPostDraft {
@@ -167,6 +168,7 @@ model FacebookPostDraft {
   schedule      Boolean?   @default(false)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
+  page_name       String? @default("")
    @@map("facebook_post_draft")
 }
 

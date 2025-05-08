@@ -67,8 +67,14 @@ export const createPostFacebook = async (data: any) => {
       data: error.response?.data,
     });
     try {
-      await prisma.facebookPostDraft.delete({
-        where: { id: data.id },
+      await prisma.facebookPostDraft.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          status: 'failed',
+          schedule: true,
+        },
       });
     } catch (deleteError) {
       console.error('Error deleting draft:', deleteError);
@@ -89,6 +95,7 @@ facebookQueue.process(async (job) => {
       },
       data: {
         schedule: true,
+        status: 'published',
       },
     });
   }
