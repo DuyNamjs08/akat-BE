@@ -25,4 +25,8 @@ router.delete(
   //   authenToken,
   FacebookInsightController.deleteFacebookInsight,
 );
+router.post(
+  '/facebook-page-insight/connection',
+  FacebookInsightController.deleteFacebookInsightWithConnection,
+);
 export default router;
