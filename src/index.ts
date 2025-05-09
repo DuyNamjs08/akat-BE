@@ -301,27 +301,30 @@ app.post('/facebook-webhook', async (req, res) => {
             );
             const response = await prisma.facebookFanPage.findFirst({
               where: {
-                id: post_id,
+                id: entry.id,
               },
             });
-            await prisma.facebookPost.create({
-              data: {
-                id: post_id,
-                content: message || '',
-                facebook_fanpage_id: entry.id,
-                posted_at: new Date(created_time * 1000),
-                likes: 0,
-                comments: 0,
-                shares: 0,
-                status: 'published',
-                page_name: response?.page_name || ' ',
-                post_avatar_url: link
-                  ? link
-                  : photos
-                    ? JSON.stringify(photos)
-                    : '',
-              },
-            });
+            console.log('response', response);
+            if (response && response?.id) {
+              await prisma.facebookPost.create({
+                data: {
+                  id: post_id,
+                  content: message || '',
+                  facebook_fanpage_id: entry.id,
+                  posted_at: new Date(created_time * 1000),
+                  likes: 0,
+                  comments: 0,
+                  shares: 0,
+                  status: 'published',
+                  page_name: response?.page_name || ' ',
+                  post_avatar_url: link
+                    ? link
+                    : photos
+                      ? JSON.stringify(photos)
+                      : '',
+                },
+              });
+            }
           }
         }
       }
