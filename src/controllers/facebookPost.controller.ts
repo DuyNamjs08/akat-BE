@@ -73,22 +73,25 @@ const FacebookPostController = {
   getAllFacebookPosts: async (req: Request, res: Response): Promise<void> => {
     try {
       const data = req.query;
-      const { facebook_fanpage_id } = req.body;
+      const { facebook_fanpage_id, content } = req.body;
       const { pageSize = 10, page = 1 } = data;
       const skip = (Number(page) - 1) * Number(pageSize);
-      const totalCount = await prisma.facebookPost.count({
-        where: {
-          facebook_fanpage_id: {
-            in: facebook_fanpage_id,
-          },
+      let whereClause: any = {
+        facebook_fanpage_id: {
+          in: facebook_fanpage_id,
         },
+      };
+      if (content) {
+        whereClause.content = {
+          contains: content,
+          mode: 'insensitive',
+        };
+      }
+      const totalCount = await prisma.facebookPost.count({
+        where: whereClause,
       });
       const FacebookPosts = await prisma.facebookPost.findMany({
-        where: {
-          facebook_fanpage_id: {
-            in: facebook_fanpage_id,
-          },
-        },
+        where: whereClause,
         orderBy: {
           created_at: 'desc',
         },
