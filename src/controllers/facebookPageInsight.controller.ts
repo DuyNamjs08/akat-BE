@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '../helpers/response';
 import { httpReasonCodes } from '../helpers/reasonPhrases';
 import { httpStatusCodes } from '../helpers/statusCodes';
 import FacebookInsightService from '../services/FacebookInsight.service';
+import { facebookInsightQueue } from '../workers/facebook-repeate.worker';
 
 const FacebookInsightController = {
   createFacebookInsight: async (req: Request, res: Response): Promise<void> => {
@@ -28,6 +29,35 @@ const FacebookInsightController = {
       const data = req.body;
       const response = await FacebookInsightService.createFacebookInsight(data);
       successResponse(res, 'Tạo facebook page insight thành công!', response);
+    } catch (error: any) {
+      errorResponse(
+        res,
+        error?.message,
+        error,
+        httpStatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+  asyncFacebookInsight: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const data = req.body;
+      console.log('dữ liệu body', data);
+      await facebookInsightQueue.add(
+        { message: 'Sync Facebook insight', id: 'user_123' },
+        {
+          jobId: 'facebook-sync-user_123',
+          repeat: { every: 60 * 1000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      successResponse(
+        res,
+        'Đồng bộ dữ liệu facebook page insight thành công!',
+        {
+          async: true,
+        },
+      );
     } catch (error: any) {
       errorResponse(
         res,

@@ -66,21 +66,21 @@ export const createPostFacebook = async (data: any) => {
       headers: error.response?.headers,
       data: error.response?.data,
     });
-    try {
+    const draft = await prisma.facebookPostDraft.findUnique({
+      where: { id: data.id },
+    });
+    if (draft) {
       await prisma.facebookPostDraft.update({
-        where: {
-          id: data.id,
-        },
+        where: { id: data.id },
         data: {
           status: 'failed',
           schedule: true,
         },
       });
-    } catch (deleteError) {
-      console.error('Error deleting draft:', deleteError);
+    } else {
+      console.warn(`Draft with id ${data.id} not found, skipping update.`);
     }
     await deleteMultipleFromR2(data.post_avatar_url);
-    throw error;
   }
 };
 

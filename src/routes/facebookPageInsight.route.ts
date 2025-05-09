@@ -7,6 +7,10 @@ router.post(
   '/facebook-page-insight',
   FacebookInsightController.createFacebookInsight,
 );
+router.post(
+  '/fb-page-insight-async',
+  FacebookInsightController.asyncFacebookInsight,
+);
 router.get(
   '/facebook-page-insight',
   //   authenToken,

@@ -30,6 +30,7 @@ import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import redisClient from './config/redis-config';
 import './workers/facebook.worker';
+import './workers/facebook-repeate.worker';
 import prisma from './config/prisma';
 
 dotenv.config({ path: `${__dirname}/../.env` });
@@ -305,7 +306,13 @@ app.post('/facebook-webhook', async (req, res) => {
               },
             });
             console.log('response', response);
-            if (response && response?.id) {
+            const exisPost = await prisma.facebookFanPage.findFirst({
+              where: {
+                id: post_id,
+              },
+            });
+            console.log('exisPost', exisPost);
+            if (response && response?.id && !exisPost) {
               await prisma.facebookPost.create({
                 data: {
                   id: post_id,
