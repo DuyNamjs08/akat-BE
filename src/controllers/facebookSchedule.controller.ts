@@ -23,15 +23,53 @@ const FacebookScheduleController = {
   ): Promise<void> => {
     try {
       const { scheduledTime, access_token, ...rest } = req.body;
+      const delay = new Date(scheduledTime).getTime() - Date.now();
       console.log('req.body', req.body);
       if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
-        res.status(400).json({ error: 'Không có file được tải lên!' });
-        errorResponse(
-          res,
-          'Không có file được tải lên!',
-          null,
-          httpStatusCodes.INTERNAL_SERVER_ERROR,
+        const response = await FacebookScheduleService.createFacebookSchedule({
+          ...rest,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+        });
+        await prisma.facebookPostDraft.update({
+          where: {
+            id: response.id,
+          },
+          data: {
+            schedule: true,
+            status: 'pending',
+          },
+        });
+        if (delay <= 0) {
+          const result = await createPostFacebook({
+            ...response,
+            access_token,
+          });
+          if (result.id && response.id) {
+            const createPost = await prisma.facebookPostDraft.update({
+              where: {
+                id: response.id,
+              },
+              data: {
+                schedule: true,
+                status: 'published',
+              },
+            });
+            successResponse(res, 'Tạo bài viết thành công!', createPost);
+            return;
+          }
+        }
+        facebookQueue.add(
+          { ...response, access_token },
+          {
+            delay,
+            attempts: 3, // Thử lại nếu lỗi
+            removeOnComplete: true,
+            removeOnFail: true,
+          },
         );
+        successResponse(res, 'Lên lịch bài viết thành công!!', response);
         return;
       }
       const fileUploadPromises = (req.files as Express.Multer.File[]).map(
@@ -50,9 +88,6 @@ const FacebookScheduleController = {
       );
       const fileUrls = await Promise.all(fileUploadPromises);
       console.log('fileUrls', fileUrls);
-      // const now = new Date();
-      // const twoMinutesLater = new Date(now.getTime() + 1 * 60 * 1000);
-      const delay = new Date(scheduledTime).getTime() - Date.now();
       console.log(
         'delay',
         new Date(scheduledTime).getTime(),
