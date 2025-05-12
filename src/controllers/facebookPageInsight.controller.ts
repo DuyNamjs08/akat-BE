@@ -4,6 +4,12 @@ import { httpReasonCodes } from '../helpers/reasonPhrases';
 import { httpStatusCodes } from '../helpers/statusCodes';
 import FacebookInsightService from '../services/FacebookInsight.service';
 import { facebookInsightQueue } from '../workers/facebook-repeate.worker';
+import prisma from '../config/prisma';
+
+interface InsightQuery {
+  user_id: string;
+  query: string;
+}
 
 const FacebookInsightController = {
   createFacebookInsight: async (req: Request, res: Response): Promise<void> => {
@@ -68,14 +74,42 @@ const FacebookInsightController = {
     }
   },
   getAllFacebookInsights: async (
-    req: Request,
+    req: Request<InsightQuery>,
     res: Response,
   ): Promise<void> => {
     try {
-      const data = req.query;
-      const FacebookInsights =
-        await FacebookInsightService.getAllFacebookInsights(data);
-      successResponse(res, 'Danh sách facebook page insight', FacebookInsights);
+      const { user_id, query, page = '1', pageSize = '2' } = req.query;
+
+      const pageNum = Number(page) || 1;
+      const pageSizeNum = Number(pageSize) || 2;
+      const skip = (pageNum - 1) * pageSizeNum;
+
+      let whereClause: any = { user_id };
+
+      if (query) {
+        whereClause.OR = [
+          { name: { contains: query, mode: 'insensitive' } },
+          { category: { contains: query, mode: 'insensitive' } },
+        ];
+      }
+
+      const totalCount = await prisma.facebookPageInsights.count({
+        where: whereClause,
+      });
+
+      const FacebookPages = await prisma.facebookPageInsights.findMany({
+        where: whereClause,
+        orderBy: {
+          created_at: 'desc',
+        },
+        skip,
+        take: pageSizeNum,
+      });
+
+      successResponse(res, 'Danh sách facebook pages', {
+        totalCount,
+        data: FacebookPages,
+      });
     } catch (error: any) {
       errorResponse(
         res,
