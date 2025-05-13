@@ -6,6 +6,10 @@ import { deleteMultipleFromR2 } from '../middlewares/upload.middleware';
 
 export const facebookQueue = new Bull('facebook-sync', {
   redis: { port: 6379, host: 'localhost' },
+  limiter: {
+    max: 10, // tối đa 10 job
+    duration: 1000, // mỗi 1000ms
+  },
 });
 
 export const createPostFacebook = async (data: any) => {
@@ -85,7 +89,7 @@ export const createPostFacebook = async (data: any) => {
 };
 
 // Xử lý job trong queue
-facebookQueue.process(async (job) => {
+facebookQueue.process(5, async (job) => {
   const { data } = job; // Dữ liệu job
   const res = await createPostFacebook(data);
   if (res.id && data.id) {

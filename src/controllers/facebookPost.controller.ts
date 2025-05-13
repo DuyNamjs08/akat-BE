@@ -5,6 +5,8 @@ import { httpStatusCodes } from '../helpers/statusCodes';
 import FacebookPostService from '../services/FacebookPost.service';
 import FacebookFanPageService from '../services/FacebookFanPage.service';
 import prisma from '../config/prisma';
+import { FBPostQueue } from '../workers/facebook-post.worker';
+import SynchronizeModel from '../models/Synchronize.model';
 
 const FacebookPostController = {
   createAndUpdateFacebookPost: async (
@@ -199,5 +201,64 @@ const FacebookPostController = {
       }
     }
   },
+};
+
+export const createPostFBMongo = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { token, page_id, page_name, user_id, page_category } = req.body;
+  try {
+    if (!token || !page_id || !page_name || !user_id || !page_category) {
+      errorResponse(res, 'Missing required fields', null, 400);
+      return;
+    }
+    const exist = await SynchronizeModel.findOne({
+      user_id: user_id,
+      facebook_fanpage_id: page_id,
+    });
+    // const openAiVectorStoreFiles = await openAi.vectorStores.list();
+
+    // console.log(openAiVectorStoreFiles);
+    if (!exist) {
+      const newSync = await SynchronizeModel.create({
+        user_id: [user_id],
+        facebook_fanpage_id: [page_id],
+      });
+      newSync.save();
+      FBPostQueue.add(
+        { token, page_id, page_name, page_category, synchronize: true },
+        {
+          delay: 1000, // Thời gian delay giữa các job
+          attempts: 3, // Thử lại nếu lỗi
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      successResponse(res, 'Success', {
+        message: 'Dữ liệu đã gửi vào queue',
+      });
+      return;
+    }
+    FBPostQueue.add(
+      { token, page_id, page_name, page_category, synchronize: false },
+      {
+        delay: 1000, // Thời gian delay giữa các job
+        attempts: 3, // Thử lại nếu lỗi
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
+    successResponse(res, 'Success', {
+      message: 'Dữ liệu đã đồng bộ !!',
+    });
+  } catch (error: any) {
+    errorResponse(
+      res,
+      error?.message,
+      error,
+      httpStatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
 };
 export default FacebookPostController;

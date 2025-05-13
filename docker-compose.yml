@@ -75,9 +75,6 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock # Cho phép Jenkins dùng Docker host
       - /var/www/akat-BE:/var/www/akat-BE
-
-    depends_on:
-      - app # Tuỳ chọn, nếu Jenkins cần chờ app service lên
   app:
     build: .
     container_name: akat-app
@@ -93,7 +90,7 @@ services:
       RABBITMQ_USER: admin
       RABBITMQ_PASSWORD: admin123
     ports:
-      - '4000:4000'
+      - '4001:4000'
     volumes:
       - .:/app
     command: ['node', 'index.js']
