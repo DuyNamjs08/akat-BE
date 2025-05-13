@@ -87,6 +87,11 @@ const numsWorker = Math.min(4, numCPUs);
 const app: Application = express();
 const server = createServer(app);
 connectDB();
+app.use(
+  cors({
+    origin: '*',
+  }),
+);
 app.use(express.json());
 const io = new Server(server, {
   cors: {
