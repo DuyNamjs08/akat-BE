@@ -24,6 +24,7 @@ import uploadtestRoutes from './routes/test.routes';
 import resourcesRoutes from './routes/resources.routes';
 import FacebookPostRoutes from './routes/facebookPost.route';
 import FacebookSchedualRoutes from './routes/facebookSchedual.route';
+import OpenaiRoutes from './routes/openAi.routes';
 import Document from './models/document.model';
 import OpenAI from 'openai';
 import { readFile, writeFile } from 'fs/promises';
@@ -32,6 +33,9 @@ import redisClient from './config/redis-config';
 import './workers/facebook.worker';
 import './workers/facebook-repeate.worker';
 import prisma from './config/prisma';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -81,13 +85,16 @@ const numsWorker = Math.min(4, numCPUs);
 //   });
 // } else {
 const app: Application = express();
+const server = createServer(app);
 connectDB();
 app.use(express.json());
-app.use(
-  cors({
+const io = new Server(server, {
+  cors: {
     origin: '*',
-  }),
-);
+    methods: ['GET', 'POST'],
+  },
+  adapter: createAdapter(redisClient, redisClient.duplicate()),
+});
 
 const upload = multer({ dest: 'uploads/' });
 const openai = new OpenAI({
@@ -167,22 +174,6 @@ app.post('/add-fine-turning', async (req, res) => {
       path.join(__dirname, '..', 'tranning', 'output.jsonl'),
     );
     const outputPath = path.join(__dirname, '..', 'training', 'output.jsonl');
-    // // Bước 5: Upload file JSONL lên OpenAI
-    // const file = await openai.files.create({
-    //   file: outputPath, // Đường dẫn đến file JSONL đã chuẩn bị
-    //   purpose: 'fine-tune',
-    // });
-
-    // // Bước 6: Fine-tune mô hình
-    // const fineTune = await openai.fineTunes.create({
-    //   training_file: file.id, // Đặt file_id của bạn ở đây
-    //   model: 'davinci', // Bạn có thể chọn model phù hợp
-    //   n_epochs: 4, // Số vòng huấn luyện
-    // });
-
-    // console.log('Fine-tune started: ', fineTune);
-
-    // Bước 7: Phản hồi thành công
     res.status(200).json({ message: 'Document saved and fine-tuning started' });
   } catch (error) {
     console.error('Error adding document:', error);
@@ -250,6 +241,7 @@ app.post('/ask', async (req, res) => {
   }
 });
 
+app.use('/api/v1/', OpenaiRoutes);
 app.use('/api/v1/', FacebookSchedualRoutes);
 app.use('/api/v1/', FacebookPostRoutes);
 app.use('/api/v1/', resourcesRoutes);
@@ -348,5 +340,18 @@ app.get('/', (req: Request, res: Response): void => {
 });
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.listen(4000, () => console.log(`Worker ${process.pid} started`));
+io.on('connection', (socket) => {
+  console.log(`Client mới kết nối: ${socket.id}`);
+  // Xử lý ngắt kết nối
+  socket.on('disconnect', () => {
+    console.log(`Client ngắt kết nối: ${socket.id}`);
+  });
+
+  socket.on('message', (data) => {
+    console.log('Tin nhắn nhận được:', data);
+    // Phát tin nhắn đến tất cả client kết nối
+    io.emit('message', data);
+  });
+});
+server.listen(4000, () => console.log(`Worker ${process.pid} started`));
 // }

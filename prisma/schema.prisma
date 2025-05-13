@@ -171,7 +171,21 @@ model FacebookPostDraft {
   page_name       String? @default("")
    @@map("facebook_post_draft")
 }
-
+model ModerationSetting {
+  id               String   @id @default(uuid())
+  name             String   @default("moderationConfig")
+  description      String   @default("Cấu hình kiểm duyệt nội dung")
+  auto_moderation   Boolean  @default(false)// Bật/tắt tự động kiểm duyệt
+  hide_post_violations   Boolean  @default(false)// Tự động ẩn bài vi phạm
+  edit_minor_content Boolean  @default(false)// Tự động sửa nội dung vi phạm nhẹ
+  notify_admin      Boolean  @default(false)// Có gửi thông báo cho admin hay không
+  admin_email       String?  @default("")// Email của admin
+  threshold        Int      // Ngưỡng độ tin cậy để xử lý tự động (ví dụ: 90)
+  prompt           String   // Prompt kiểm duyệt
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  @@map("moderation_settings")
+}
 model Profile {
   user_id    String      @id
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)

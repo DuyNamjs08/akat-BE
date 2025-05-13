@@ -1,12 +1,15 @@
 import express from 'express';
 const router = express.Router();
 import { authenToken } from '../middlewares/auth.middleware';
-import FacebookPostController from '../controllers/facebookPost.controller';
+import FacebookPostController, {
+  createPostFBMongo,
+} from '../controllers/facebookPost.controller';
 
 router.post(
   '/facebook-post',
   FacebookPostController.createAndUpdateFacebookPost,
 );
+router.post('/facebook-post-v2', createPostFBMongo);
 router.post(
   '/facebook-post-list',
   //   authenToken,
