@@ -121,16 +121,12 @@ app.use(
   }
 })();
 async function getEmbedding(text: string) {
-  console.log('Getting embedding for text:', text);
-  console.log(process.env.OPENAI_API_KEY);
   const res = await openai.embeddings.create({
     input: text,
     model: 'text-embedding-3-small',
     encoding_format: 'float',
   });
-
   const embedding = res.data[0].embedding;
-  console.log('Embedding length:', embedding.length); // Kiểm tra kích thước
   return embedding;
 }
 
