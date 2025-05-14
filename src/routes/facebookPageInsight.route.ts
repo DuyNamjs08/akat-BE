@@ -11,6 +11,10 @@ router.post(
   '/fb-page-insight-async',
   FacebookInsightController.asyncFacebookInsight,
 );
+router.post(
+  '/fb-page-insight-user-fanpage',
+  FacebookInsightController.getFacebookInsightByUseridAndFanpageid,
+);
 router.get(
   '/facebook-page-insight',
   //   authenToken,

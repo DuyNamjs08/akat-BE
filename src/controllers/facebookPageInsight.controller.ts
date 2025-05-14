@@ -46,13 +46,29 @@ const FacebookInsightController = {
   },
   asyncFacebookInsight: async (req: Request, res: Response): Promise<void> => {
     try {
-      const data = req.body;
-      console.log('dữ liệu body', data);
+      const { id = '', facebook_fanpage_id = '', access_token = '' } = req.body;
+      if (!id || !facebook_fanpage_id || !access_token) {
+        errorResponse(
+          res,
+          'Thiếu thông tin bắt buộc asyncFacebookInsight',
+          {},
+          httpStatusCodes.BAD_REQUEST,
+        );
+        return;
+      }
+      const repeatableJobs = await facebookInsightQueue.getRepeatableJobs();
+      const targetJob = repeatableJobs.find((job) => job.id === id);
+      if (targetJob) {
+        await facebookInsightQueue.removeRepeatableByKey(targetJob.key);
+        console.log('job tồn tại, đã xóa job cũ');
+      } else {
+        console.log('Job không tìm thấy.');
+      }
       await facebookInsightQueue.add(
-        { message: 'Sync Facebook insight', id: 'user_123' },
+        { id, facebook_fanpage_id, access_token },
         {
-          jobId: 'facebook-sync-user_123',
-          repeat: { every: 60 * 1000 },
+          jobId: id,
+          repeat: { every: 60 * 60 * 1000 },
           removeOnComplete: true,
           removeOnFail: true,
         },
@@ -127,6 +143,36 @@ const FacebookInsightController = {
     try {
       const FacebookInsight =
         await FacebookInsightService.getFacebookInsightById(req.params.id);
+      successResponse(res, 'Success', FacebookInsight);
+    } catch (error: any) {
+      errorResponse(
+        res,
+        error?.message,
+        error,
+        httpStatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+  },
+  getFacebookInsightByUseridAndFanpageid: async (
+    req: Request,
+    res: Response,
+  ): Promise<void> => {
+    try {
+      const { user_id = '', facebook_fanpage_id = '' } = req.body;
+      if (!user_id || !facebook_fanpage_id) {
+        errorResponse(
+          res,
+          'Thiếu thông tin getFacebookInsightByUseridAndFanpageid',
+          {},
+          httpStatusCodes.BAD_REQUEST,
+        );
+        return;
+      }
+      const FacebookInsight =
+        await FacebookInsightService.getFacebookInsightByFacebookFanpageId(
+          facebook_fanpage_id as string,
+          user_id as string,
+        );
       successResponse(res, 'Success', FacebookInsight);
     } catch (error: any) {
       errorResponse(

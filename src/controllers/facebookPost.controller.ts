@@ -5,8 +5,10 @@ import { httpStatusCodes } from '../helpers/statusCodes';
 import FacebookPostService from '../services/FacebookPost.service';
 import FacebookFanPageService from '../services/FacebookFanPage.service';
 import prisma from '../config/prisma';
-import { FBPostQueue } from '../workers/facebook-post.worker';
+import { ChangeText, FBPostQueue } from '../workers/facebook-post.worker';
 import SynchronizeModel from '../models/Synchronize.model';
+import { openAi } from '../config/openAi';
+import Document from '../models/document.model';
 
 const FacebookPostController = {
   createAndUpdateFacebookPost: async (
@@ -207,7 +209,7 @@ export const createPostFBMongo = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { token, page_id, page_name, user_id, page_category } = req.body;
+  const { token, page_id, page_name, user_id, page_category = '' } = req.body;
   try {
     if (!token || !page_id || !page_name || !user_id || !page_category) {
       errorResponse(res, 'Missing required fields', null, 400);
@@ -251,6 +253,95 @@ export const createPostFBMongo = async (
     );
     successResponse(res, 'Success', {
       message: 'Dữ liệu đã đồng bộ !!',
+    });
+  } catch (error: any) {
+    errorResponse(
+      res,
+      error?.message,
+      error,
+      httpStatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+};
+async function getEmbedding(text: string) {
+  const res = await openAi.embeddings.create({
+    input: text,
+    model: 'text-embedding-3-small',
+    encoding_format: 'float',
+  });
+  const embedding = res.data[0].embedding;
+  return embedding;
+}
+export const generatePostFBMongo = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { question = '', facebook_fanpage_id = '' } = req.body;
+  try {
+    if (!question || !facebook_fanpage_id) {
+      errorResponse(res, 'Missing required fields', null, 400);
+      return;
+    }
+    const embedding = await getEmbedding(question);
+    const resultsList = await Document.aggregate([
+      {
+        $match: {
+          facebook_page_id: facebook_fanpage_id,
+        },
+      },
+      {
+        $vectorSearch: {
+          index: 'default', // Tên index bạn đã tạo
+          path: 'embedding',
+          queryVector: embedding,
+          numCandidates: 30,
+          limit: 3,
+        },
+      },
+      {
+        $project: {
+          content: 1,
+          score: { $meta: 'vectorSearchScore' },
+        },
+      },
+    ]);
+    const contextText = resultsList
+      .map((post, i) => `• ${post.content}`)
+      .join('\n');
+    // Gọi OpenAI API để tạo nội dung
+    const promptContent = `Bạn là một chuyên gia viết nội dung cho mạng xã hội. Hãy viết một bài đăng cho Facebook dựa trên một số ví dụ bài viết gần giống:
+
+Gợi ý: ${contextText}
+
+Hãy viết ra 3 phiên bản **khác nhau** của một bài đăng Facebook hấp dẫn dựa trên các gợi ý trên.
+
+Yêu cầu:
+- Mỗi bài viết cần rõ ràng, có call-to-action và hashtag phù hợp.
+- Không viết lời giải thích.
+- Mỗi bài viết bắt đầu bằng: "Bài viết 1:", "Bài viết 2:", "Bài viết 3:".`;
+    const completion = await openAi.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Bạn là chuyên gia viết content mạng xã hội.',
+        },
+        { role: 'user', content: promptContent },
+      ],
+      temperature: 0.8,
+      max_tokens: 1000,
+      top_p: 1,
+    });
+    const result = completion.choices[0]?.message?.content;
+    const posts = result
+      ? result
+          .split(/Bài viết \d+:/i)
+          .map((s) => s.replace(/^\*+|\*+$/g, '').trim())
+          .filter((s) => s.length > 0)
+      : [];
+    successResponse(res, 'Success', {
+      message: 'Gen AI thành công',
+      posts,
     });
   } catch (error: any) {
     errorResponse(

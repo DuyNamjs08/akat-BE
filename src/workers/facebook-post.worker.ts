@@ -5,7 +5,8 @@ import { format, parseISO } from 'date-fns';
 import path from 'path';
 import fs from 'fs';
 import { openAi } from '../config/openAi';
-const ChangeText = (str: any) =>
+import Document from '../models/document.model';
+export const ChangeText = (str: any) =>
   str
     .normalize('NFD') // Tách chữ và dấu
     .replace(/[\u0300-\u036f]/g, '') // Loại dấu
@@ -78,6 +79,51 @@ const workerPostFBMongo = async (dataRaw: any) => {
     throw error;
   }
 };
+async function getEmbeddings(text: string[]) {
+  const res = await openAi.embeddings.create({
+    input: text,
+    model: 'text-embedding-3-small',
+    encoding_format: 'float',
+  });
+  return res.data.map((item) => item.embedding);
+}
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
+}
+
+FBPostQueue.process(5, async (job) => {
+  try {
+    const { synchronize, page_id } = job.data;
+    const res = await workerPostFBMongo(job.data);
+    if (synchronize) {
+      const list = await facebookPostModel.find({
+        facebook_fanpage_id: page_id,
+      });
+      const texts = list.map((post) => post.content || '');
+      const batches = chunkArray(texts, 50);
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
+        const embeddings = await getEmbeddings(batch);
+        // Gắn embedding vào từng post tương ứng:
+        for (let i = 0; i < batch.length; i++) {
+          await Document.create({
+            embedding: embeddings[i],
+            content: batch[i],
+            facebook_fanpage_id: page_id,
+          });
+        }
+      }
+    }
+    console.log('Post created successfully:', res);
+  } catch (err) {
+    console.error('Job failed:', err);
+    throw err;
+  }
+});
 async function uploadToVectorStore(filePath: string, vectorStoreName: string) {
   try {
     // 1. Upload file lên OpenAI
@@ -98,44 +144,3 @@ async function uploadToVectorStore(filePath: string, vectorStoreName: string) {
     throw error;
   }
 }
-FBPostQueue.process(5, async (job) => {
-  try {
-    const { synchronize, page_id } = job.data;
-    const res = await workerPostFBMongo(job.data);
-    if (synchronize) {
-      const list = await facebookPostModel.find({
-        facebook_fanpage_id: page_id,
-      });
-
-      const output = list
-        .map((post) => {
-          return `Facebook Page: ${post.page_name} (${post.facebook_fanpage_id})
-Post ID: ${post.facebook_post_id}
-Posted At: ${new Date(post.posted_at).toISOString()}
-Category: ${post.page_category}
-Likes: ${post.likes}, Comments: ${post.comments}, Shares: ${post.shares}
-Status: ${post.status}
-Content:
-${post.content}
-
-------------------------------------------------------------
-`;
-        })
-        .join('\n');
-      const documentsDir = path.join(__dirname, '..', 'documents');
-      if (!fs.existsSync(documentsDir)) {
-        fs.mkdirSync(documentsDir, { recursive: true });
-      }
-      const outputPath = path.join(documentsDir, `fb_posts_${page_id}.txt`);
-      fs.writeFileSync(outputPath, output, 'utf8');
-      console.log(`✅ Synchronized posts saved to ${outputPath}`);
-      const timeFormatted = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-      await uploadToVectorStore(outputPath, timeFormatted);
-    }
-
-    console.log('Post created successfully:', res);
-  } catch (err) {
-    console.error('Job failed:', err);
-    throw err;
-  }
-});
