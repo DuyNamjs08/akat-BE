@@ -78,10 +78,10 @@ const FacebookInsightController = {
     res: Response,
   ): Promise<void> => {
     try {
-      const { user_id, query, page = '1', pageSize = '2' } = req.query;
+      const { user_id, query, page = '1', pageSize = '10' } = req.query;
 
       const pageNum = Number(page) || 1;
-      const pageSizeNum = Number(pageSize) || 2;
+      const pageSizeNum = Number(pageSize) || 10;
       const skip = (pageNum - 1) * pageSizeNum;
 
       let whereClause: any = { user_id };
