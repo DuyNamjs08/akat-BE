@@ -11,23 +11,10 @@ const ResourcesController = {
   ): Promise<void> => {
     try {
       const data = req.body;
-      console.log('>>????', data);
-      const { facebook_fanpage_id = [] } = data;
-      const fanpage_count = await prisma.facebookFanPage.count({
+      const { user_id = '' } = data;
+      const fanpage_count = await prisma.facebookPageInsights.count({
         where: {
-          id: {
-            in: facebook_fanpage_id,
-          },
-        },
-        orderBy: {
-          created_at: 'desc',
-        },
-      });
-      const fanpage_data = await prisma.facebookFanPage.findMany({
-        where: {
-          id: {
-            in: facebook_fanpage_id,
-          },
+          user_id: user_id,
         },
         orderBy: {
           created_at: 'desc',
@@ -35,32 +22,23 @@ const ResourcesController = {
       });
       const fanpage_insight_data = await prisma.facebookPageInsights.findMany({
         where: {
-          facebook_fanpage_id: {
-            in: facebook_fanpage_id,
-          },
+          user_id: user_id,
         },
         orderBy: {
           created_at: 'desc',
         },
       });
-      const totalCounts = fanpage_data.reduce(
-        (acc, cur) => ({
-          follower_count: acc.follower_count + (cur.follower_count || 0),
-          fan_count: acc.fan_count + (cur.fan_count || 0),
-        }),
-        { follower_count: 0, fan_count: 0 },
-      );
       const totalInsightCounts = fanpage_insight_data.reduce(
         (acc, cur) => ({
           posts: acc.posts + (cur.posts || 0),
           approach: acc.approach + (cur.approach || 0),
           interactions: acc.interactions + (cur.interactions || 0),
+          follows: acc.follows + (cur.follows || 0),
         }),
-        { posts: 0, approach: 0, interactions: 0 },
+        { posts: 0, approach: 0, interactions: 0, follows: 0 },
       );
       successResponse(res, 'Thông tin tài nguyên', {
         fanpage_count,
-        ...totalCounts,
         ...totalInsightCounts,
       });
     } catch (error: any) {
