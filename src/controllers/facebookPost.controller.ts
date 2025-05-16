@@ -9,6 +9,7 @@ import { ChangeText, FBPostQueue } from '../workers/facebook-post.worker';
 import SynchronizeModel from '../models/Synchronize.model';
 import { openAi } from '../config/openAi';
 import Document from '../models/document.model';
+import facebookPostModel from '../models/FacebookPost.model';
 
 const FacebookPostController = {
   createAndUpdateFacebookPost: async (
@@ -80,28 +81,25 @@ const FacebookPostController = {
       const { facebook_fanpage_id, content } = req.body;
       const { pageSize = 10, page = 1 } = data;
       const skip = (Number(page) - 1) * Number(pageSize);
-      let whereClause: any = {
-        facebook_fanpage_id: {
-          in: facebook_fanpage_id,
-        },
-      };
-      if (content) {
-        whereClause.content = {
-          contains: content,
-          mode: 'insensitive',
-        };
+      let query: any = {};
+      if (facebook_fanpage_id) {
+        // Nếu facebook_fanpage_id là mảng hoặc chuỗi, ta xử lý để query $in
+        if (Array.isArray(facebook_fanpage_id)) {
+          query.facebook_fanpage_id = { $in: facebook_fanpage_id };
+        } else {
+          query.facebook_fanpage_id = facebook_fanpage_id;
+        }
       }
-      const totalCount = await prisma.facebookPost.count({
-        where: whereClause,
-      });
-      const FacebookPosts = await prisma.facebookPost.findMany({
-        where: whereClause,
-        orderBy: {
-          created_at: 'desc',
-        },
-        skip,
-        take: pageSize ? Number(pageSize) : 10,
-      });
+      if (content) {
+        query.content = { $regex: content, $options: 'i' };
+      }
+      const totalCount = await facebookPostModel.countDocuments(query);
+      const FacebookPosts = await facebookPostModel
+        .find(query)
+        .sort({ created_at: -1 })
+        .skip(skip)
+        .limit(Number(pageSize));
+
       successResponse(res, 'Danh sách facebook Posts', {
         totalCount,
         data: FacebookPosts,
@@ -219,9 +217,6 @@ export const createPostFBMongo = async (
       user_id: user_id,
       facebook_fanpage_id: page_id,
     });
-    // const openAiVectorStoreFiles = await openAi.vectorStores.list();
-
-    // console.log(openAiVectorStoreFiles);
     if (!exist) {
       const newSync = await SynchronizeModel.create({
         user_id: [user_id],
@@ -229,7 +224,14 @@ export const createPostFBMongo = async (
       });
       newSync.save();
       FBPostQueue.add(
-        { token, page_id, page_name, page_category, synchronize: true },
+        {
+          token,
+          page_id,
+          page_name,
+          page_category,
+          synchronize: true,
+          user_id,
+        },
         {
           delay: 1000, // Thời gian delay giữa các job
           attempts: 3, // Thử lại nếu lỗi
@@ -243,7 +245,7 @@ export const createPostFBMongo = async (
       return;
     }
     FBPostQueue.add(
-      { token, page_id, page_name, page_category, synchronize: false },
+      { token, page_id, page_name, page_category, synchronize: false, user_id },
       {
         delay: 1000, // Thời gian delay giữa các job
         attempts: 3, // Thử lại nếu lỗi
@@ -285,17 +287,17 @@ export const generatePostFBMongo = async (
     const embedding = await getEmbedding(question);
     const resultsList = await Document.aggregate([
       {
-        $match: {
-          facebook_page_id: facebook_fanpage_id,
-        },
-      },
-      {
         $vectorSearch: {
           index: 'default', // Tên index bạn đã tạo
           path: 'embedding',
           queryVector: embedding,
           numCandidates: 30,
           limit: 3,
+        },
+      },
+      {
+        $match: {
+          facebook_fanpage_id: facebook_fanpage_id,
         },
       },
       {
@@ -308,10 +310,13 @@ export const generatePostFBMongo = async (
     const contextText = resultsList
       .map((post, i) => `• ${post.content}`)
       .join('\n');
+    console.log('contextText', contextText);
     // Gọi OpenAI API để tạo nội dung
-    const promptContent = `Bạn là một chuyên gia viết nội dung cho mạng xã hội. Hãy viết một bài đăng cho Facebook dựa trên một số ví dụ bài viết gần giống:
-
+    const promptContent = `
+Bạn là một chuyên gia viết nội dung cho mạng xã hội.
+Hãy viết một bài đăng cho Facebook dựa trên một số ví dụ bài viết trước đó.:
 Gợi ý: ${contextText}
+Câu hỏi: ${question}
 
 Hãy viết ra 3 phiên bản **khác nhau** của một bài đăng Facebook hấp dẫn dựa trên các gợi ý trên.
 
