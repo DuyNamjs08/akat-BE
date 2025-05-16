@@ -36,6 +36,7 @@ import prisma from './config/prisma';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+import facebookPostModel from './models/FacebookPost.model';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -100,7 +101,12 @@ const io = new Server(server, {
   },
   adapter: createAdapter(redisClient, redisClient.duplicate()),
 });
-
+export function getIO() {
+  if (!io) {
+    throw new Error('Socket.io not initialized!');
+  }
+  return io;
+}
 const upload = multer({ dest: 'uploads/' });
 const openai = new OpenAI({
   apiKey: process.env['OPENAI_API_KEY'],
@@ -272,14 +278,13 @@ app.get('/facebook-webhook', (req, res) => {
 // Endpoint nhận webhook từ Facebook (khi có sự kiện mới)
 app.post('/facebook-webhook', async (req, res) => {
   try {
-    // console.log('Received webhook payload:', JSON.stringify(req.body, null, 2));
     const entries = req.body.entry;
     for (const entry of entries) {
       if (entry.changes) {
         for (const change of entry.changes) {
           if (
             change.field === 'feed' &&
-            ['status', 'photo'].includes(change.value.item) &&
+            ['status', 'photo', 'share'].includes(change.value.item) &&
             change.value.verb === 'add'
           ) {
             const {
@@ -298,32 +303,32 @@ app.post('/facebook-webhook', async (req, res) => {
                 id: entry.id,
               },
             });
-            console.log('response', response);
-            const exisPost = await prisma.facebookPost.findFirst({
-              where: {
-                id: post_id,
-              },
-            });
-            console.log('exisPost', exisPost);
-            if (response && response?.id && !exisPost) {
-              await prisma.facebookPost.create({
-                data: {
-                  id: post_id,
-                  content: message || '',
-                  facebook_fanpage_id: entry.id,
-                  posted_at: new Date(created_time * 1000),
-                  likes: 0,
-                  comments: 0,
-                  shares: 0,
-                  status: 'published',
-                  page_name: response?.page_name || ' ',
-                  post_avatar_url: link
-                    ? link
-                    : photos
-                      ? JSON.stringify(photos)
-                      : '',
+            if (response && response?.id) {
+              await facebookPostModel.updateOne(
+                {
+                  facebook_post_id: post_id,
                 },
-              });
+                {
+                  $set: {
+                    content: message || '',
+                    facebook_fanpage_id: entry.id,
+                    posted_at: new Date(created_time * 1000),
+                    likes: 0,
+                    comments: 0,
+                    shares: 0,
+                    status: 'published',
+                    post_avatar_url: link
+                      ? link
+                      : photos
+                        ? JSON.stringify(photos)
+                        : '',
+                    schedule: false,
+                    page_name: response?.page_name || ' ',
+                    page_category: response?.page_category || '',
+                  },
+                },
+                { upsert: true },
+              );
             }
           }
         }
@@ -347,7 +352,14 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`Client ngắt kết nối: ${socket.id}`);
   });
-
+  socket.on('joinRoom', ({ userId, data }) => {
+    socket.join(userId);
+    console.log({
+      userId,
+      data,
+    });
+    console.log(`Socket ${socket.id} joined room ${userId}`);
+  });
   socket.on('message', (data) => {
     console.log('Tin nhắn nhận được:', data);
     // Phát tin nhắn đến tất cả client kết nối

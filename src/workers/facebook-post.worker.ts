@@ -6,6 +6,8 @@ import path from 'path';
 import fs from 'fs';
 import { openAi } from '../config/openAi';
 import Document from '../models/document.model';
+import { NotificationModel } from '../models/Notification.model';
+import { getIO } from '..';
 export const ChangeText = (str: any) =>
   str
     .normalize('NFD') // Tách chữ và dấu
@@ -97,7 +99,8 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 FBPostQueue.process(5, async (job) => {
   try {
-    const { synchronize, page_id } = job.data;
+    const io = getIO();
+    const { synchronize, page_id, page_name, user_id } = job.data;
     const res = await workerPostFBMongo(job.data);
     if (synchronize) {
       const list = await facebookPostModel.find({
@@ -117,6 +120,26 @@ FBPostQueue.process(5, async (job) => {
           });
         }
       }
+    }
+    try {
+      const notificationData = {
+        userId: user_id,
+        title: `Đồng bộ bài viết Facebook từ ${page_name} thành công`,
+        message: `Đã đồng bộ ${res} bài viết từ Facebook`,
+        type: 'system',
+        data: {
+          page_id: page_id,
+          page_name: page_name,
+          page_category: job.data.page_category,
+          synchronize: job.data.synchronize,
+        },
+      };
+      console.log('Notification data:', notificationData);
+      await NotificationModel.create(notificationData);
+      io.to(user_id).emit('fb-sync', notificationData);
+    } catch (error) {
+      console.error('Error while creating notifications post', error);
+      throw error;
     }
     console.log('Post created successfully:', res);
   } catch (err) {
