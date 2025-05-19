@@ -5,6 +5,7 @@ import FacebookPostController, {
   createPostFBMongo,
   generatePostFBMongo,
 } from '../controllers/facebookPost.controller';
+import MapController from '../controllers/map.controller';
 
 router.post(
   '/facebook-post',
@@ -24,4 +25,8 @@ router.delete(
   //   authenToken,
   FacebookPostController.deleteFacebookPost,
 );
+
+router.get('/places', MapController.getCoordinates);
+router.get('/places/current', MapController.getLocationName);
+
 export default router;
