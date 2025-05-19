@@ -68,7 +68,7 @@ const FacebookInsightController = {
         { id, facebook_fanpage_id, access_token },
         {
           jobId: id,
-          repeat: { every: 60 * 60 * 1000 },
+          repeat: { every: 30 * 60 * 1000 },
           removeOnComplete: true,
           removeOnFail: true,
         },
