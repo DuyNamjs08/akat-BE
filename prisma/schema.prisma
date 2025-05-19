@@ -165,6 +165,7 @@ model FacebookPostDraft {
   shares      Int      // Số lượt chia sẻ
   status      String?
   post_avatar_url String[] @default([])
+  post_video_url String[] @default([])
   schedule      Boolean?   @default(false)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt

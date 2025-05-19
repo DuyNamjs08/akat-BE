@@ -10,6 +10,7 @@ import SynchronizeModel from '../models/Synchronize.model';
 import { openAi } from '../config/openAi';
 import Document from '../models/document.model';
 import facebookPostModel from '../models/FacebookPost.model';
+import { add } from 'date-fns';
 
 const FacebookPostController = {
   createAndUpdateFacebookPost: async (
@@ -96,7 +97,7 @@ const FacebookPostController = {
       const totalCount = await facebookPostModel.countDocuments(query);
       const FacebookPosts = await facebookPostModel
         .find(query)
-        .sort({ created_at: -1 })
+        .sort({ posted_at: -1 })
         .skip(skip)
         .limit(Number(pageSize));
 
@@ -207,7 +208,7 @@ export const createPostFBMongo = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { token, page_id, page_name, user_id, page_category = '' } = req.body;
+  const { token, page_id, page_name, user_id, page_category } = req.body;
   try {
     if (!token || !page_id || !page_name || !user_id || !page_category) {
       errorResponse(res, 'Missing required fields', null, 400);
@@ -235,6 +236,25 @@ export const createPostFBMongo = async (
         {
           delay: 1000, // Thời gian delay giữa các job
           attempts: 3, // Thử lại nếu lỗi
+          removeOnComplete: true,
+          removeOnFail: true,
+        },
+      );
+      await FBPostQueue.add(
+        {
+          token,
+          page_id,
+          page_name,
+          page_category,
+          synchronize: false,
+          user_id,
+        },
+        {
+          repeat: {
+            every: 30 * 60 * 1000,
+            startDate: add(new Date(), { hours: 1 }),
+          },
+          jobId: `repeat_${user_id}_${page_id}`,
           removeOnComplete: true,
           removeOnFail: true,
         },

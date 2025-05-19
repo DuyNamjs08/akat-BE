@@ -25,6 +25,7 @@ import resourcesRoutes from './routes/resources.routes';
 import FacebookPostRoutes from './routes/facebookPost.route';
 import FacebookSchedualRoutes from './routes/facebookSchedual.route';
 import OpenaiRoutes from './routes/openAi.routes';
+import NotiRoutes from './routes/noti.routes';
 import Document from './models/document.model';
 import OpenAI from 'openai';
 import { readFile, writeFile } from 'fs/promises';
@@ -249,6 +250,7 @@ app.post('/ask', async (req, res) => {
 });
 
 app.use('/api/v1/', OpenaiRoutes);
+app.use('/api/v1/', NotiRoutes);
 app.use('/api/v1/', FacebookSchedualRoutes);
 app.use('/api/v1/', FacebookPostRoutes);
 app.use('/api/v1/', resourcesRoutes);
@@ -330,6 +332,49 @@ app.post('/facebook-webhook', async (req, res) => {
                 { upsert: true },
               );
             }
+          } else {
+            // const { post_id, parent_id, verb, message, reaction_type, item } =
+            //   change.value;
+            // if (
+            //   post_id === parent_id &&
+            //   (verb === 'add' || verb === 'remove') &&
+            //   reaction_type === 'like'
+            // ) {
+            //   fbRealtimeUpdate.add(
+            //     {
+            //       post_id,
+            //       parent_id,
+            //       verb,
+            //       message,
+            //       reaction_type,
+            //       item,
+            //     },
+            //     {
+            //       removeOnComplete: true,
+            //       removeOnFail: true,
+            //     },
+            //   );
+            // }
+            // if (
+            //   post_id === parent_id &&
+            //   (verb === 'add' || verb === 'remove') &&
+            //   item === 'comment'
+            // ) {
+            //   fbRealtimeUpdate.add(
+            //     {
+            //       post_id,
+            //       parent_id,
+            //       verb,
+            //       message,
+            //       reaction_type,
+            //       item,
+            //     },
+            //     {
+            //       removeOnComplete: true,
+            //       removeOnFail: true,
+            //     },
+            //   );
+            // }
           }
         }
       }

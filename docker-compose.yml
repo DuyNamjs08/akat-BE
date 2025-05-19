@@ -32,18 +32,20 @@ services:
     container_name: akat-kibana
     ports:
       - 5602:5601
+    restart: unless-stopped
     depends_on:
       - elasticsearch
   redis:
     image: redis
     container_name: akat-redis
+    restart: unless-stopped
     ports:
       - '6379:6379'
 
   postgres:
     image: postgres:17-alpine
     container_name: akat-postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123123
@@ -64,6 +66,7 @@ services:
       - '15672:15672' # Management UI port
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
   jenkins:
     image: jenkins/jenkins:jdk17
     container_name: akat-jenkins
@@ -75,6 +78,7 @@ services:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock # Cho phép Jenkins dùng Docker host
       - /var/www/akat-BE:/var/www/akat-BE
+    restart: unless-stopped
   app:
     build: .
     container_name: akat-app

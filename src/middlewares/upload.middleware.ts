@@ -63,8 +63,14 @@ const s3 = new AWS.S3({
   signatureVersion: 'v4',
 });
 const getMimeType = (filePath: string): string => {
-  return mime.lookup(filePath) || 'application/octet-stream';
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.mp4') {
+    return 'video/mp4';
+  }
+  const contentType = mime.lookup(filePath) || 'application/octet-stream';
+  return contentType;
 };
+
 // Hàm upload lên R2
 export const uploadToR2 = async (
   filePath: string,
@@ -76,10 +82,7 @@ export const uploadToR2 = async (
     const params: AWS.S3.PutObjectRequest = {
       Bucket: process.env.R2_BUCKET_NAME!,
       Key: fileName,
-      Body:
-        fileStats.size > 52428888
-          ? fs.readFileSync(filePath)
-          : fs.createReadStream(filePath),
+      Body: fs.createReadStream(filePath),
       ContentType: contentType,
     };
 

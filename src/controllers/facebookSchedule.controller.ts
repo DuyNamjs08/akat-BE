@@ -22,7 +22,7 @@ const FacebookScheduleController = {
     res: Response,
   ): Promise<void> => {
     try {
-      const { scheduledTime, access_token, ...rest } = req.body;
+      const { scheduledTime, access_token, type, ...rest } = req.body;
       const delay = new Date(scheduledTime).getTime() - Date.now();
       console.log('req.body', req.body);
       if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
@@ -45,8 +45,9 @@ const FacebookScheduleController = {
           const result = await createPostFacebook({
             ...response,
             access_token,
+            type,
           });
-          if (result.id && response.id) {
+          if (result && response.id) {
             const createPost = await prisma.facebookPostDraft.update({
               where: {
                 id: response.id,
@@ -61,7 +62,7 @@ const FacebookScheduleController = {
           }
         }
         facebookQueue.add(
-          { ...response, access_token },
+          { ...response, access_token, type },
           {
             delay,
             attempts: 3, // Thử lại nếu lỗi
@@ -72,22 +73,38 @@ const FacebookScheduleController = {
         successResponse(res, 'Lên lịch bài viết thành công!!', response);
         return;
       }
-      const fileUploadPromises = (req.files as Express.Multer.File[]).map(
-        async (file) => {
-          const timestamp = Date.now();
-          const originalFilename = file.filename;
-          const newFilename = `${originalFilename}-${timestamp}`;
-          const result = await uploadToR2(
-            file.path,
-            `user-uploads/${newFilename}`,
-          );
-          return {
-            url: `${process.env.R2_PUBLIC_URL}/${result.Key}`,
-          };
-        },
+      const allFiles = req.files as Express.Multer.File[];
+      const images = allFiles.filter((file) =>
+        file.mimetype.startsWith('image/'),
       );
-      const fileUrls = await Promise.all(fileUploadPromises);
-      console.log('fileUrls', fileUrls);
+      const videos = allFiles.filter((file) =>
+        file.mimetype.startsWith('video/'),
+      );
+      const uploadFiles = async (
+        files: Express.Multer.File[],
+        type: 'image' | 'video',
+      ) => {
+        return Promise.all(
+          files.map(async (file) => {
+            const timestamp = Date.now();
+            const originalFilename = file.originalname.replace(/\s/g, '_');
+            const newFilename = `${originalFilename}-${timestamp}`;
+            const result = await uploadToR2(
+              file.path,
+              `user-uploads/${newFilename}`,
+            );
+            return {
+              url: `${process.env.R2_PUBLIC_URL}/${result.Key}`,
+              type, // 'image' hoặc 'video'
+            };
+          }),
+        );
+      };
+      const [imageUploads, videoUploads] = await Promise.all([
+        uploadFiles(images, 'image'),
+        uploadFiles(videos, 'video'),
+      ]);
+      console.log('imageUploads,videoUploads', imageUploads, videoUploads);
       console.log(
         'delay',
         new Date(scheduledTime).getTime(),
@@ -99,11 +116,16 @@ const FacebookScheduleController = {
         likes: 0,
         comments: 0,
         shares: 0,
-        post_avatar_url: fileUrls.map((item) => item.url),
+        post_avatar_url: imageUploads.map((item) => item.url),
+        post_video_url: videoUploads.map((item) => item.url),
       });
       if (delay <= 0) {
-        const result = await createPostFacebook({ ...response, access_token });
-        if (result.id && response.id) {
+        const result = await createPostFacebook({
+          ...response,
+          access_token,
+          type,
+        });
+        if (result && response.id) {
           const createPost = await prisma.facebookPostDraft.update({
             where: {
               id: response.id,
@@ -127,7 +149,7 @@ const FacebookScheduleController = {
         },
       });
       facebookQueue.add(
-        { ...response, access_token },
+        { ...response, access_token, type },
         {
           delay,
           attempts: 3, // Thử lại nếu lỗi
