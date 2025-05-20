@@ -55,6 +55,14 @@ const FacebookPostSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    hypothetical_violation_reason: {
+      type: String,
+      default: '',
+    },
+    severity: {
+      type: String,
+      default: '',
+    },
   },
   {
     collection: 'facebook_posts',
