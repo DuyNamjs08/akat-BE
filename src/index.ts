@@ -38,6 +38,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import facebookPostModel from './models/FacebookPost.model';
+import { fbFixPost } from './workers/fb-fixpost.worker';
 
 dotenv.config({ path: `${__dirname}/../.env` });
 const envPath = `${__dirname}/../.env`;
@@ -286,7 +287,7 @@ app.post('/facebook-webhook', async (req, res) => {
         for (const change of entry.changes) {
           if (
             change.field === 'feed' &&
-            ['status', 'photo', 'share'].includes(change.value.item) &&
+            ['status', 'photo', 'share', 'video'].includes(change.value.item) &&
             change.value.verb === 'add'
           ) {
             const {
@@ -306,33 +307,56 @@ app.post('/facebook-webhook', async (req, res) => {
               },
             });
             if (response && response?.id) {
-              await facebookPostModel.updateOne(
+              fbFixPost.add(
                 {
                   facebook_post_id: post_id,
+                  message,
+                  facebook_fanpage_id: entry.id,
+                  created_time,
+                  link,
+                  photos,
+                  page_name: response?.page_name,
+                  page_category: response?.page_category,
                 },
                 {
-                  $set: {
-                    content: message || '',
-                    facebook_fanpage_id: entry.id,
-                    posted_at: new Date(created_time * 1000),
-                    likes: 0,
-                    comments: 0,
-                    shares: 0,
-                    status: 'published',
-                    post_avatar_url: link
-                      ? link
-                      : photos
-                        ? JSON.stringify(photos)
-                        : '',
-                    schedule: false,
-                    page_name: response?.page_name || ' ',
-                    page_category: response?.page_category || '',
-                  },
+                  attempts: 3, // Thử lại nếu lỗi
+                  removeOnComplete: true,
+                  removeOnFail: true,
                 },
-                { upsert: true },
               );
+              // await facebookPostModel.updateOne(
+              //   {
+              //     facebook_post_id: post_id,
+              //   },
+              //   {
+              //     $set: {
+              //       content: message || '',
+              //       facebook_fanpage_id: entry.id,
+              //       posted_at: new Date(created_time * 1000),
+              //       likes: 0,
+              //       comments: 0,
+              //       shares: 0,
+              //       status: 'published',
+              //       post_avatar_url: link
+              //         ? link
+              //         : photos
+              //           ? JSON.stringify(photos)
+              //           : '',
+              //       schedule: false,
+              //       page_name: response?.page_name || ' ',
+              //       page_category: response?.page_category || '',
+              //     },
+              //   },
+              //   { upsert: true },
+              // );
             }
           } else {
+            // if (entry.id === '659360963920940') {
+            //   console.log(
+            //     'Received webhook payload: V2',
+            //     JSON.stringify(req.body, null, 2),
+            //   );
+            // }
             // const { post_id, parent_id, verb, message, reaction_type, item } =
             //   change.value;
             // if (

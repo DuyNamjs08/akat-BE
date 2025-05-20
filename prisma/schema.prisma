@@ -185,6 +185,8 @@ model ModerationSetting {
   prompt           String   // Prompt kiểm duyệt
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+  facebook_fanpage_id String @default("")
+  user_id             String @default("")
   @@map("moderation_settings")
 }
 model Profile {
