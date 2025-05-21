@@ -120,26 +120,26 @@ FBPostQueue.process(5, async (job) => {
           });
         }
       }
-    }
-    try {
-      const notificationData = {
-        userId: user_id,
-        title: `Đồng bộ bài viết Facebook từ ${page_name} thành công`,
-        message: `Đã đồng bộ ${res} bài viết từ Facebook`,
-        type: 'system',
-        data: {
-          page_id: page_id,
-          page_name: page_name,
-          page_category: job.data.page_category,
-          synchronize: job.data.synchronize,
-        },
-      };
-      console.log('Notification data:', notificationData);
-      await NotificationModel.create(notificationData);
-      io.to(user_id).emit('fb-sync', notificationData);
-    } catch (error) {
-      console.error('Error while creating notifications post', error);
-      throw error;
+      try {
+        const notificationData = {
+          userId: user_id,
+          title: `Đồng bộ bài viết Facebook từ ${page_name} thành công`,
+          message: `Đã đồng bộ ${res} bài viết từ Facebook`,
+          type: 'system',
+          data: {
+            page_id: page_id,
+            page_name: page_name,
+            page_category: job.data.page_category,
+            synchronize: job.data.synchronize,
+          },
+        };
+        console.log('Notification data:', notificationData);
+        await NotificationModel.create(notificationData);
+        io.to(user_id).emit('fb-sync', notificationData);
+      } catch (error) {
+        console.error('Lỗi khi đẩy thông báo', error);
+        throw error;
+      }
     }
     console.log('Post created successfully:', res);
   } catch (err) {

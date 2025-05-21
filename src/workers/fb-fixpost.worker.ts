@@ -14,15 +14,7 @@ export const fbFixPost = new Bull('fb-fixpost', {
     duration: 1000, // mỗi 1000ms
   },
 });
-const hypotheticalViolationReason = async (content: string | undefined) => {
-  try {
-    if (!content) return;
-    const response = await openAi.chat.completions.create({
-      model: 'gpt-4-turbo',
-      messages: [
-        {
-          role: 'system',
-          content: `Bạn là AI kiểm duyệt nội dung cho mạng xã hội. 
+const samplePrompt = `Bạn là AI kiểm duyệt nội dung cho mạng xã hội. 
         Giả sử nội dung đầu vào vi phạm nguyên tắc cộng đồng của Facebook,
         hãy giải thích lý do tại sao dựa trên các tiêu chí sau:
 Cấu Kết Và Cổ Xúy Tội Ác
@@ -58,7 +50,24 @@ Chỉ trả về JSON object theo định dạng sau nếu có vi phạm:
   "hypothetical_violation_reason": "string - lý do chi tiết bằng tiếng Việt",
   "severity": "veryhigh" | "high" | "medium" | "low" // mức độ nghiêm trọng nếu có vi phạm
 }
-Không thêm bất kỳ text, markdown hay giải thích nào khác.`,
+Không thêm bất kỳ text, markdown hay giải thích nào khác.`;
+const hypotheticalViolationReason = async (
+  content: string | undefined,
+  prompt: string,
+) => {
+  try {
+    if (!content) return;
+    const response = await openAi.chat.completions.create({
+      model: 'gpt-4-turbo',
+      messages: [
+        {
+          role: 'system',
+          content:
+            prompt &&
+            prompt?.includes('hypothetical_violation_reason') &&
+            prompt?.includes('severity')
+              ? prompt
+              : samplePrompt,
         },
         {
           role: 'user',
@@ -164,12 +173,42 @@ const updateDb = async (data: any) => {
       page_name: page_name || ' ',
       page_category: page_category || '',
     };
+    if (checkModerate?.hide_post_violations) {
+      const hypoReson = await hypotheticalViolationReason(
+        message,
+        checkModerate.prompt,
+      );
+      if (
+        hypoReson &&
+        hypoReson.hypothetical_violation_reason &&
+        hypoReson.severity
+      ) {
+        console.log('hypoReson delete', hypoReson);
+        await axios.delete(
+          `https://graph.facebook.com/v22.0/${facebook_post_id}?access_token=${connection?.access_token?.[0] || ''}`,
+        );
+        await facebookPostModel.updateOne(
+          {
+            facebook_post_id: facebook_post_id,
+          },
+          {
+            $set: { ...payload, is_delete: true },
+          },
+          { upsert: true },
+        );
+        console.log('xóa mềm', facebook_post_id);
+        return;
+      }
+    }
     if (
       checkModerate &&
       checkModerate.auto_moderation &&
       checkModerate.edit_minor_content
     ) {
-      const hypoReson = await hypotheticalViolationReason(message);
+      const hypoReson = await hypotheticalViolationReason(
+        message,
+        checkModerate.prompt,
+      );
       const anlysisReson = await analyzeContent(
         message,
         hypoReson?.hypothetical_violation_reason,
@@ -194,7 +233,10 @@ const updateDb = async (data: any) => {
         { upsert: true },
       );
     } else if (checkModerate && checkModerate.auto_moderation) {
-      const hypoReson = await hypotheticalViolationReason(message);
+      const hypoReson = await hypotheticalViolationReason(
+        message,
+        checkModerate.prompt,
+      );
       console.log('hypoReson', hypoReson);
       await facebookPostModel.updateOne(
         {

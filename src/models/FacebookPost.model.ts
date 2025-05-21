@@ -63,6 +63,10 @@ const FacebookPostSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    is_delete: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     collection: 'facebook_posts',
