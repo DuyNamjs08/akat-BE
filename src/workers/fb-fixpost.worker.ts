@@ -290,7 +290,6 @@ AI Moderation Bot
     return;
   } catch (error) {
     console.error('Kiểm duyệt error:', error);
-    throw error;
   }
 };
 fbFixPost.process(15, async (job) => {
