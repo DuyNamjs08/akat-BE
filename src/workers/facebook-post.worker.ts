@@ -78,7 +78,11 @@ const workerPostFBMongo = async (dataRaw: any) => {
     return totalCount;
   } catch (error: any) {
     console.error('Error during Facebook post fetch:', error.message);
-    throw error;
+    const repeatableJobs = await FBPostQueue.getRepeatableJobs();
+    for (const job of repeatableJobs) {
+      await FBPostQueue.removeRepeatableByKey(job.key);
+      console.log(`✅ Removed repeatable job: ${job.name}`);
+    }
   }
 };
 async function getEmbeddings(text: string[]) {

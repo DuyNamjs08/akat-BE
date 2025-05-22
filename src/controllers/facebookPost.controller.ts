@@ -240,6 +240,16 @@ export const createPostFBMongo = async (
           removeOnFail: true,
         },
       );
+      const repeatableJobs = await FBPostQueue.getRepeatableJobs();
+      const targetJob = repeatableJobs.find(
+        (job) => job.id === `repeat_${user_id}_${page_id}`,
+      );
+      if (targetJob) {
+        await FBPostQueue.removeRepeatableByKey(targetJob.key);
+        console.log('FBPostQueue tồn tại, đã xóa job post cũ');
+      } else {
+        console.log('FBPostQueue không tìm thấy.');
+      }
       await FBPostQueue.add(
         {
           token,
