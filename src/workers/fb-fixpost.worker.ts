@@ -264,12 +264,21 @@ const updateDb = async (data: any) => {
       );
     }
     if (checkModerate && checkModerate.notify_admin) {
+      const hypoReson = await hypotheticalViolationReason(
+        message,
+        checkModerate.prompt,
+      );
       const date = new Date(created_time * 1000);
-      await hanleSendMail({
-        name: 'AI Moderation Bot',
-        email: checkModerate.admin_email,
-        subject: 'Báo cáo vi phạm nội dung từ hệ thống kiểm duyệt',
-        message: `
+      if (
+        hypoReson &&
+        hypoReson.hypothetical_violation_reason &&
+        hypoReson.severity
+      ) {
+        await hanleSendMail({
+          name: 'AI Moderation Bot',
+          email: checkModerate.admin_email,
+          subject: 'Báo cáo vi phạm nội dung từ hệ thống kiểm duyệt',
+          message: `
 Kính gửi quản trị viên,
 
 Hệ thống kiểm duyệt nội dung tự động (AI Moderation) đã phát hiện một trường hợp vi phạm quy định cộng đồng.
@@ -285,7 +294,8 @@ Vui lòng truy cập hệ thống quản trị để xem xét và xử lý vi ph
 Trân trọng,  
 AI Moderation Bot
   `,
-      });
+        });
+      }
     }
     return;
   } catch (error) {
