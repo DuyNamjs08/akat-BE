@@ -50,6 +50,7 @@ Chỉ trả về JSON object theo định dạng sau nếu có vi phạm:
   "hypothetical_violation_reason": "string - lý do chi tiết bằng tiếng Việt",
   "severity": "veryhigh" | "high" | "medium" | "low" // mức độ nghiêm trọng nếu có vi phạm
 }
+Nếu không vi phạm gì hypothetical_violation_reason là null 
 Không thêm bất kỳ text, markdown hay giải thích nào khác.`;
 const hypotheticalViolationReason = async (
   content: string | undefined,
